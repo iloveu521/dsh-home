@@ -1,0 +1,48 @@
+{
+  "name": "dsh-profile-web",
+  "private": true,
+  "dependencies": {
+    "@dsh-community/dsh-paste-input": "link:../../plugin-src/dsh-paste-input",
+    "@huiliyi37/dsh-office": "^0.2.1",
+    "@linxin666/dsh-client-ui-skin-center": "link:../../plugin-src/dsh-client-ui-skin-center",
+    "@linxin666/dsh-web-ui-all": "^0.2.4",
+    "@liustack/modlens": "3.22.0",
+    "@nanmicoder/dsh-agent-teams": "^0.1.8",
+    "@omdsh-dev/dsh-genui": "github:omdsh-dev/dsh-genui",
+    "dsh-at-file": "^0.6.3",
+    "dsh-friendly-steps": "github:dongwenxiu83-web/dsh-friendly-steps",
+    "dsh-history-tree": "^1.0.3",
+    "dsh-memory-evolve": "link:../../plugin-src/dsh-memory-evolve",
+    "dsh-cordis-resilience": "link:../../plugin-src/dsh-cordis-resilience",
+    "dsh-task-resilience": "link:../../plugin-src/dsh-task-resilience",
+    "dsh-reef": "^1.5.2",
+    "dsh-skill-fuzzy": "github:ch1bug/dsh-skill-fuzzy",
+    "dsh-workdiff": "link:../../plugin-src/dsh-workdiff",
+    "dsh-wsl-workspace": "^0.2.3",
+    "dshmarket": "^1.13.1"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-cordis-resilience",
+        "@liustack/modlens",
+        "@huiliyi37/dsh-office",
+        "@linxin666/dsh-web-ui-all",
+        "@nanmicoder/dsh-agent-teams",
+        "@omdsh-dev/dsh-genui",
+        "dsh-at-file",
+        "dsh-reef",
+        "dsh-history-tree",
+        "dsh-skill-fuzzy",
+        "dsh-friendly-steps",
+        "dsh-workdiff",
+        "dsh-task-resilience",
+        "dshmarket",
+        "@linxin666/dsh-client-ui-skin-center",
+        "dsh-wsl-workspace"
+      ]
+    }
+  }
+}

@@ -1,0 +1,212 @@
+/**
+ * Host half of the in-GUI skin center: mounts the `/api/skin-center/*` routes
+ * the browser half uses for the skin catalog, the active selection and
+ * one-click apply / restore-official (v2, issue #506). Skins are pure asset
+ * directories served through the safety pipeline; switching is a client-side
+ * atomic swap and never touches `cordis.patch.yml`. Try-on stays pure
+ * browser work (see src/client/runtime/skin-controller.ts).
+ * @module @linxin666/dsh-client-ui-skin-center
+ */
+
+import { Context } from '@deepseek-ai/cordis'
+import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import z from 'schemastery'
+// Type-only: pulls the dsh-host-webserver service seat (ctx.webServer).
+import type {} from '@deepseek-ai/dsh-host-webserver'
+import { makeSkinCenterV2Routes } from './routes-v2.ts'
+import { makeSkinIndexTap } from './tap-index-adapter.ts'
+import { defaultActiveStatePath, readActiveSelection } from './active-state.ts'
+import { migrateLegacySelection } from './legacy-bridge.ts'
+import { loadSkinCatalog } from './skin-repo.ts'
+import { makeWeRoutes } from './we-routes.ts'
+import { defaultWallpapersStoreDir } from './we-library.ts'
+import { makeImageRoutes, defaultImageUploadsDir } from './image-routes.ts'
+import { resolveHarnessHome } from './harness-home.ts'
+import { mountOnce } from './mount-once.ts'
+
+export { makeSkinCenterV2Routes, SKIN_CENTER_V2_PREFIX } from './routes-v2.ts'
+export { makeWeRoutes, WE_API_PREFIX } from './we-routes.ts'
+export { makeImageRoutes, IMAGE_API_PREFIX, defaultImageUploadsDir, listUploadedImages } from './image-routes.ts'
+// The contract surface, re-exported for tooling (the dsh-skin CLI validates
+// and installs skin directories through these; never duplicate the logic).
+export { validateSkinManifestV2 } from './core/manifest-v2/validate.ts'
+export type { SkinManifestV2, SkinManifestValidation } from './core/manifest-v2/types.ts'
+export { transformSkinCss, SkinCssSafetyError } from './core/css-safety/transform.ts'
+export { loadSkinCatalog, findSkin, resolveInsideSkin, userSkinsDir, builtinSkinsDir } from './skin-repo.ts'
+export type { SkinCatalog, SkinCatalogEntry } from './skin-repo.ts'
+export { defaultActiveStatePath, readActiveSelection, writeActiveSelection } from './active-state.ts'
+
+/** Stable cordis plugin name (matches cordis.patch.yml insert id). */
+export const name = 'ui-skin-center'
+
+/** Services required before the skin-center can mount its routes. */
+export const inject = ['webServer']
+
+/**
+ * Settings namespace for the main-interface background scrim, owned by the
+ * skin center. The browser half spells the same string so it can bind the
+ * scope without depending on this Host package.
+ */
+export const SKIN_BACKGROUND_NAMESPACE = settingsNamespace('skin-background')
+
+/**
+ * Plugin-configuration fields for the main-interface background, plus the
+ * master switch that turns the whole skin center on or off.
+ */
+export interface SkinBackgroundConfig {
+  /** Master switch for the skin center. */
+  enabled?: boolean
+  /**
+   * Background occlusion 0-100 (0 = no extra veil, 100 = fully obscured).
+   * Skins that paint a backdrop image (blue-fantasy / whale-song) read the
+   * equivalent CSS variable value and raise their scrim; the official stock
+   * look has no backdrop and is unaffected.
+   */
+  backgroundOpacity?: number
+  /**
+   * Gaussian blur (px, 0-20) applied to the backdrop while the conversation
+   * pane has no content (empty state). Painted only by skins that draw a
+   * backdrop; 0 disables the empty-state blur.
+   */
+  backgroundBlurEmpty?: number
+  /**
+   * Gaussian blur (px, 0-20) applied to the backdrop once the conversation
+   * pane has content. Painted only by skins that draw a backdrop; 0 disables
+   * the with-content blur.
+   */
+  backgroundBlurContent?: number
+}
+
+/**
+ * Runtime schema for SkinBackgroundConfig. Persists the master switch
+ * (`enabled`) alongside the background strength fields.
+ */
+export const SkinBackgroundConfigSchema: z<SkinBackgroundConfig> = z.object({
+  enabled: z.boolean().default(true),
+  backgroundOpacity: z.number().min(0).max(100).step(5).default(0),
+  backgroundBlurEmpty: z.number().min(0).max(20).step(1).default(0),
+  backgroundBlurContent: z.number().min(0).max(20).step(1).default(0),
+})
+
+/**
+ * Settings namespace for the Wallpaper Engine bridge, owned by the skin
+ * center. The browser half renders the applied wallpaper behind the GUI and
+ * persists the selection here; the host half reads weLibraryDirs to extend
+ * the library scan beyond the auto-detected Steam folders.
+ */
+export const SKIN_WALLPAPER_NAMESPACE = settingsNamespace('skin-wallpaper')
+
+/**
+ * Wallpaper bridge configuration. Wallpapers only ever come from the user's
+ * own machine (their Wallpaper Engine library or manual folders); the import
+ * store keeps personal local copies, nothing is redistributed.
+ */
+export interface SkinWallpaperConfig {
+  /** Master switch for the wallpaper feature. */
+  enabled?: boolean
+  /** Manual library folders (each a folder of projects or a single project). */
+  weLibraryDirs?: string[]
+  /** The applied wallpaper id ('' = none). */
+  selection?: string
+  /** Render mode: 'live' renders video/web, 'frame' pins a static frame. */
+  mode?: 'live' | 'frame'
+  /** Pause the video when the window is hidden (saves GPU/battery). */
+  pauseOnHidden?: boolean
+  /** Darkening scrim over the wallpaper, 0-90 percent. */
+  dim?: number
+  /** Blur radius applied to the wallpaper itself, 0-60 px. */
+  wallpaperBlur?: number
+  /** Sizing mode for live wallpapers: cover | contain | fill (stretch). */
+  fit?: 'cover' | 'contain' | 'fill'
+  /** Opacity of the wallpaper media layer, 0-100 (100 = fully opaque). */
+  wallpaperOpacity?: number
+}
+
+/** Runtime schema for SkinWallpaperConfig. */
+export const SkinWallpaperConfigSchema: z<SkinWallpaperConfig> = z.object({
+  enabled: z.boolean().default(true),
+  weLibraryDirs: z.array(z.string()).default([]),
+  selection: z.string().default(''),
+  mode: z.union(['live', 'frame'] as const).default('live'),
+  pauseOnHidden: z.boolean().default(true),
+  dim: z.number().min(0).max(90).step(5).default(25),
+  wallpaperBlur: z.number().min(0).max(60).step(1).default(0),
+  fit: z.union(['cover', 'contain', 'fill'] as const).default('cover'),
+  wallpaperOpacity: z.number().min(0).max(100).step(1).default(100),
+})
+
+/**
+ * Register the skin-center API routes.
+ *
+ * Failure policy: route mounting problems are logged, never thrown — the web
+ * shell fails the whole boot when a plugin apply throws, and the skin center
+ * must not take the GUI down.
+ * @param ctx - cordis context.
+ */
+export const apply = mountOnce('@linxin666/dsh-client-ui-skin-center', applyImpl)
+
+function applyImpl(ctx: Context): void {
+  // Optional-settings wiring for the background scrim namespace. The browser
+  // half binds the scope and applies the value to the body CSS variable;
+  // this side just declares the namespace + schema so the value persists and
+  // re-resolves across reloads. installSettingsSection is a no-op when no
+  // settings service is mounted (pure skin-center installs skip it).
+  installSettingsSection(ctx, SKIN_BACKGROUND_NAMESPACE, SkinBackgroundConfigSchema, {}, {
+    setSource: () => { /* application is browser-side; value is read from the scope */ },
+    onChange: () => { /* browser half re-applies on scope publish */ },
+  })
+
+  // The wallpaper bridge namespace; the host side keeps a live getter so
+  // the /we routes see weLibraryDirs changes without a restart.
+  let wallpaperSource: () => SkinWallpaperConfig = () => ({})
+  installSettingsSection(ctx, SKIN_WALLPAPER_NAMESPACE, SkinWallpaperConfigSchema, {}, {
+    setSource: (source) => { wallpaperSource = source },
+    onChange: () => { /* routes re-read through the getter per request */ },
+  })
+
+  const harnessHome = resolveHarnessHome()
+  const routes = [
+    ...makeSkinCenterV2Routes(),
+    ...makeWeRoutes({
+      getConfig: () => wallpaperSource(),
+      storeDir: defaultWallpapersStoreDir(harnessHome),
+      uploadsDir: defaultImageUploadsDir(harnessHome),
+    }),
+    ...makeImageRoutes({ uploadsDir: defaultImageUploadsDir(harnessHome) }),
+  ]
+  try {
+    ctx.effect(() => {
+      const disposers: Array<() => void> = []
+      try {
+        for (const route of routes) disposers.push(ctx.webServer.register(route))
+        // The anti-FOUC seam (issue #506): stamp html[data-dsh-skin] and the
+        // stylesheet links into every served index.html. All tapIndex usage
+        // converges in the adapter; it fails closed to the stock look.
+        const statePath = defaultActiveStatePath()
+        disposers.push(ctx.webServer.tapIndex(makeSkinIndexTap({
+          readActiveId: () => readActiveSelection(statePath),
+        })))
+      } catch (error) {
+        // Roll back whatever registered before the failure so a partial
+        // mount never leaves half a route family live; the outer catch logs.
+        for (const dispose of disposers) dispose()
+        throw error
+      }
+      return () => { for (const dispose of disposers) dispose() }
+    }, 'ui-skin-center: routes')
+  } catch (error) {
+    console.error('[ui-skin-center] route registration failed:', error)
+  }
+
+  // One-shot legacy bridge (issue #506): migrate the retired dsh-skin
+  // managed-section selection into the v2 store and strip the legacy rows.
+  // Idempotent and fail-closed; notes go to the host log.
+  try {
+    const statePath = defaultActiveStatePath()
+    const knownIds = loadSkinCatalog().skins.map((s) => s.manifest.id)
+    const migration = migrateLegacySelection({ knownIds, activeStatePath: statePath })
+    for (const note of migration.notes) console.info(`[ui-skin-center] legacy bridge: ${note}`)
+  } catch (error) {
+    console.error('[ui-skin-center] legacy bridge failed:', error)
+  }
+}

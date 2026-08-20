@@ -1,0 +1,6 @@
+# Browser-visible recovery diagnostics. Provider retry limits are configured in
+# the profile's final cordis.patch.yml so the native llm-retry service remains
+# the single owner of retry execution.
+- insert:
+    - id: task-resilience
+      name: 'dsh-task-resilience'

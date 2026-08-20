@@ -1,0 +1,42 @@
+{
+    "$schema":  "https://schemas.linxin666.org/dsh-skin/v2.json",
+    "skinManifestVersion":  2,
+    "id":  "summer-liquid-glass",
+    "name":  "夏沫琉璃",
+    "nameEn":  "Summer Liquid Glass",
+    "version":  "1.0.0-local",
+    "author":  "local user (wallpaper-adapted)",
+    "tagline":  "夏沫琉璃 · 壁纸适配版：玻璃更透，WE 壁纸可见",
+    "description":  "基于内置夏沫琉璃，将玻璃面板透明度调低（glass-normal 0.46→0.26 等），使 Wallpaper Engine 壁纸明显透出；其余设计（冰青/玫瑰/琥珀强调、毛玻璃、夏祭背景声明）原样保留。",
+    "tags":  [
+                 "liquid-glass",
+                 "summer",
+                 "fireworks",
+                 "glass",
+                 "cyan",
+                 "rose",
+                 "ios26"
+             ],
+    "accent":  "#67DCE7",
+    "order":  14,
+    "preview":  {
+                    "light":  "preview/light.png",
+                    "dark":  "preview/dark.png"
+                },
+    "contributes":  {
+                        "stylesheet":  "skin.css",
+                        "patches":  "patches.css",
+                        "backgroundMedia":  {
+                                                "light":  {
+                                                              "type":  "image",
+                                                              "src":  "assets/summer-liquid-glass-art.jpg",
+                                                              "scrim":  "linear-gradient(rgba(7, 19, 33, 0.28) 0%, rgba(7, 19, 33, 0.22) 45%, rgba(7, 19, 33, 0.32) 100%)"
+                                                          },
+                                                "dark":  {
+                                                             "type":  "image",
+                                                             "src":  "assets/summer-liquid-glass-art.jpg",
+                                                             "scrim":  "linear-gradient(rgba(7, 19, 33, 0.34) 0%, rgba(7, 19, 33, 0.28) 45%, rgba(7, 19, 33, 0.38) 100%)"
+                                                         }
+                                            }
+                    }
+}

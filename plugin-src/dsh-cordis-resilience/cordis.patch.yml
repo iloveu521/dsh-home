@@ -1,0 +1,3 @@
+- insert:
+    - id: cordis-resilience
+      name: dsh-cordis-resilience

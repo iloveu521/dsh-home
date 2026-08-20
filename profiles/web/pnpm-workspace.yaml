@@ -1,0 +1,38 @@
+packages:
+  - .
+
+nodeLinker: hoisted
+autoInstallPeers: false
+storeDir: ../../.pnpm-store
+minimumReleaseAgeExclude:
+  - '@liustack/modlens@3.17.0 || 3.22.0'
+  - dsh-reef@1.5.2
+  - '@huiliyi37/dsh-office@0.2.1'
+  - '@linxin666/dsh-client-ui-aionui-panel@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-client-ui-git-graph@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-client-ui-skin-center@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-client-ui-task-board@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-client-ui-web-ui-settings@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-liangshen@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-live-stats@0.1.17'
+  - '@linxin666/dsh-pet@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-remote-web-ui@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-skins@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-ssh@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-tool-describe-image@0.1.17 || 0.2.3 || 0.2.4'
+  - '@linxin666/dsh-web-ui-all@0.1.17 || 0.2.3 || 0.2.4'
+  - '@nanmicoder/dsh-agent-teams@0.1.5 || 0.1.8'
+  - '@linxin666/dsh-client-ui-community-plugins@0.2.3 || 0.2.4'
+  - '@linxin666/dsh-client-ui-plugin-manager@0.2.3 || 0.2.4'
+  - '@linxin666/dsh-client-ui-skill-explorer@0.2.3 || 0.2.4'
+  - '@linxin666/dsh-chat-recovery@0.2.4'
+  - '@linxin666/dsh-desktop-launcher@0.2.4'
+  - dompurify@3.4.14
+  - dsh-at-file@0.6.3
+  - dsh-better-sidebar@0.14.0
+  - mermaid@11.17.0
+allowBuilds:
+  cloudflared: false
+  cpu-features: false
+  node-pty: true
+  ssh2: false

@@ -1,0 +1,30 @@
+{
+  "name": "dsh-workdiff",
+  "version": "0.1.0",
+  "description": "工作区改动侧栏 + 底栏终端默认打开。Left-side working-file diff panel with +/- sync while the agent works, and an optional setting to auto-open the bottom panel (terminal by default) on new sessions.",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  }
+}

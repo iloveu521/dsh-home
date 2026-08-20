@@ -1,0 +1,122 @@
+/**
+ * Mint Glass — 本地用户皮肤（基于官方 Mint，issue #506 模板）。
+ *
+ * 与 Mint 的唯一差异：把面板背景 token 改为半透明（玻璃效果），
+ * 使皮肤中心挂载的 Wallpaper Engine 壁纸（z-index -3）能够透出。
+ *
+ * 修改点（与官方 Mint 对比）：
+ *   light: bg-base / bg-layer-1/2/3 / sidebar-fill 改为 rgba(...,0.62~0.7)
+ *   dark:  同上（深色值）
+ *
+ * 透明度过淡可自行调高 alpha（0.62 → 0.8 更实，→ 0.5 更透）。
+ */
+
+:root {
+  /* surfaces — 半透明玻璃 */
+  --dsw-alias-bg-base: rgba(244, 250, 247, 0.7);
+  --dsw-alias-bg-layer-1: rgba(255, 255, 255, 0.7);
+  --dsw-alias-bg-layer-2: rgba(238, 246, 242, 0.62);
+  --dsw-alias-bg-layer-3: rgba(228, 239, 233, 0.62);
+  --dsw-alias-bg-overlay: #ffffffe0;
+  --dsw-alias-bg-skeleton: #0f513210;
+
+  /* borders */
+  --dsw-alias-border-l1: #0f513214;
+  --dsw-alias-border-l2: #0f513224;
+  --dsw-alias-border-l3: #0f513236;
+  --dsw-alias-border-l4: #0f513248;
+
+  /* labels */
+  --dsw-alias-label-primary: #123528;
+  --dsw-alias-label-secondary: #3c5a4d;
+  --dsw-alias-label-tertiary: #688373;
+  --dsw-alias-label-dimmed: #8aa697;
+  --dsw-alias-label-caption: #9db8aa;
+
+  /* brand + interactive */
+  --dsw-alias-brand-primary: #2fbf8f;
+  --dsw-alias-brand-text: #0d3b2a;
+  --dsw-alias-interactive-bg-hover: #2fbf8f14;
+  --dsw-alias-interactive-bg-active: #2fbf8f24;
+
+  /* state colors */
+  --dsw-alias-state-error-primary: #d64545;
+  --dsw-alias-state-warn-primary: #c98a1b;
+  --dsw-alias-state-success-primary: #2f9e6e;
+  --dsw-alias-state-business-primary: #2fbf8f;
+
+  /* buttons */
+  --dsw-alias-button-primary-fill: #2fbf8f;
+  --dsw-alias-button-primary-hover: #45cba0;
+  --dsw-alias-button-contrast-fill: #0d3b2a;
+
+  /* shell anchors */
+  --dsw-specific-sidebar-fill: rgba(238, 246, 242, 0.62);
+  --dsw-specific-sidebar-nav-item-hover: #2fbf8f14;
+  --dsw-specific-sidebar-nav-item-active: #2fbf8f24;
+
+  /* overlays + elevation (the shadow group is part of the L1 whitelist) */
+  --dsw-alias-tooltip-bg: #123528;
+  --dsw-shadow-lv1: 0 1px 2px #0f513214;
+  --dsw-shadow-lv2: 0 4px 12px #0f51321f;
+  --dsw-shadow-lv3: 0 12px 32px #0f51322b;
+
+  /* scrollbars */
+  --dsw-alias-scrollbar-bg-l2: #0f513220;
+  --dsw-alias-scrollbar-hover-l2: #0f513238;
+}
+
+body[data-ds-dark-theme] {
+  /* surfaces — 半透明玻璃 */
+  --dsw-alias-bg-base: rgba(15, 31, 25, 0.7);
+  --dsw-alias-bg-layer-1: rgba(21, 42, 33, 0.7);
+  --dsw-alias-bg-layer-2: rgba(26, 51, 40, 0.62);
+  --dsw-alias-bg-layer-3: rgba(33, 64, 51, 0.62);
+  --dsw-alias-bg-overlay: #152a21e0;
+  --dsw-alias-bg-skeleton: #a7f3d010;
+
+  /* borders */
+  --dsw-alias-border-l1: #a7f3d014;
+  --dsw-alias-border-l2: #a7f3d024;
+  --dsw-alias-border-l3: #a7f3d038;
+  --dsw-alias-border-l4: #a7f3d04d;
+
+  /* labels */
+  --dsw-alias-label-primary: #e3f4ec;
+  --dsw-alias-label-secondary: #b4d4c4;
+  --dsw-alias-label-tertiary: #84a894;
+  --dsw-alias-label-dimmed: #67917b;
+  --dsw-alias-label-caption: #53806a;
+
+  /* brand + interactive */
+  --dsw-alias-brand-primary: #3dd6a2;
+  --dsw-alias-brand-text: #d7f7e9;
+  --dsw-alias-interactive-bg-hover: #3dd6a218;
+  --dsw-alias-interactive-bg-active: #3dd6a22b;
+
+  /* state colors */
+  --dsw-alias-state-error-primary: #f06666;
+  --dsw-alias-state-warn-primary: #e0a63f;
+  --dsw-alias-state-success-primary: #4cc58f;
+  --dsw-alias-state-business-primary: #3dd6a2;
+
+  /* buttons */
+  --dsw-alias-button-primary-fill: #2fbf8f;
+  --dsw-alias-button-primary-hover: #3dd6a2;
+  --dsw-alias-button-contrast-fill: #06231a;
+
+  /* shell anchors */
+  --dsw-specific-sidebar-fill: rgba(21, 42, 33, 0.7);
+  --dsw-specific-sidebar-nav-item-hover: #3dd6a218;
+  --dsw-specific-sidebar-nav-item-active: #3dd6a22b;
+
+  /* overlays + elevation */
+  --dsw-alias-tooltip-bg: #e3f4ec;
+  --dsw-shadow-lv1: 0 1px 2px #00000066;
+  --dsw-shadow-lv2: 0 4px 12px #00000080;
+  --dsw-shadow-lv3: 0 12px 32px #00000099;
+
+  /* scrollbars */
+  --dsw-alias-scrollbar-bg-l2: #a7f3d026;
+  --dsw-alias-scrollbar-hover-l2: #a7f3d045;
+}

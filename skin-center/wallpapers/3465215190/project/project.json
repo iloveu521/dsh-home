@@ -1,0 +1,406 @@
+{
+	"approved" : true,
+	"contentrating" : "Everyone",
+	"description" : "------------------------中文---------------------------\n画师:catzz 背景音乐：Comfort\nCytokine NITRO | catzz #pixiv https://www.pixiv.net/artworks/112052584\n关于音频识别:由于影片识别的画尺寸不是正方形，所以识别的封面可能显示不全，希望理解.\n如果觉得壁纸做的不错请给作者一个好评,十分感谢！！(*´∀人)\n倘若您对壁纸有什么建议请评论区留言。 (*´∀｀)ﾉゞ\n------------------------English---------------------------\nArtist:catzz Background music: Comfort\nCytokine NITRO | catzz #pixiv https://www.pixiv.net/artworks/112052584\nAbout Film Recognition:Since the size of the picture identified by the film is not square, the cover of the identification may not be displayed completely, I hope to understand.\nIf you think the wallpaper is good, please give the author a good review, thank you very much!!(*´∀人)\nIf you have any suggestions for wallpaper, please leave a comment in the comments section.\n(*´∀｀)ﾉゞ",
+	"file" : "scene.json",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"_1" : 
+			{
+				"index" : 2,
+				"order" : 102,
+				"text" : "开场动画/Opening animation",
+				"type" : "bool",
+				"value" : true
+			},
+			"_222222222" : 
+			{
+				"index" : 0,
+				"order" : 100,
+				"text" : "<center><p><h3><b><a>如果觉得壁纸做的不错请给作者一个好评,十分感谢！！(*´∀人) </center></i></a></h3></b><b><a><center><h4><br>If you think the wallpaper is good, please give the author a good review, thank you very much!!(*´∀人)</br></a><b></h4></p>",
+				"value" : ""
+			},
+			"newproperty" : 
+			{
+				"index" : 8,
+				"order" : 108,
+				"text" : "歌曲封面/Song cover",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty1" : 
+			{
+				"index" : 3,
+				"order" : 103,
+				"text" : "眼睛脉动/Eye pulse",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty10" : 
+			{
+				"condition" : "newproperty8.value",
+				"index" : 19,
+				"order" : 119,
+				"text" : "颜色后/Post color",
+				"type" : "color",
+				"value" : "0.3607843137254902 0.4 0.7490196078431373"
+			},
+			"newproperty11" : 
+			{
+				"condition" : "newproperty8.value",
+				"fraction" : true,
+				"index" : 16,
+				"max" : 50,
+				"min" : 10,
+				"order" : 116,
+				"precision" : 1,
+				"step" : 1,
+				"text" : "条数/Bar Count",
+				"type" : "slider",
+				"value" : 32
+			},
+			"newproperty12" : 
+			{
+				"index" : 22,
+				"options" : 
+				[
+					{
+						"label" : "关闭/off",
+						"value" : "0"
+					},
+					{
+						"label" : "时间1/clock1",
+						"value" : "1"
+					},
+					{
+						"label" : "时间2/clock2",
+						"value" : "2"
+					}
+				],
+				"order" : 122,
+				"text" : "时间/clock",
+				"type" : "combo",
+				"value" : "1"
+			},
+			"newproperty13" : 
+			{
+				"condition" : "newproperty12.value==2",
+				"fraction" : true,
+				"index" : 25,
+				"max" : 1,
+				"min" : 0,
+				"order" : 125,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "不透明度/opacity",
+				"type" : "slider",
+				"value" : 1
+			},
+			"newproperty14" : 
+			{
+				"condition" : "newproperty12.value==2",
+				"fraction" : true,
+				"index" : 24,
+				"max" : 1.5,
+				"min" : 0,
+				"order" : 124,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "大小/size",
+				"type" : "slider",
+				"value" : 0.7
+			},
+			"newproperty15" : 
+			{
+				"condition" : "newproperty12.value==2",
+				"index" : 23,
+				"order" : 123,
+				"text" : "颜色/colour",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"newproperty16" : 
+			{
+				"condition" : "newproperty12.value==1",
+				"index" : 28,
+				"order" : 128,
+				"text" : "脉动/pulse",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty17" : 
+			{
+				"condition" : "newproperty12.value==1",
+				"index" : 29,
+				"order" : 129,
+				"text" : "颜色/colour",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"newproperty18" : 
+			{
+				"condition" : "newproperty12.value==1",
+				"fraction" : true,
+				"index" : 30,
+				"max" : 1,
+				"min" : 0.5,
+				"order" : 130,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "不透明度/opacity",
+				"type" : "slider",
+				"value" : 0.65
+			},
+			"newproperty19" : 
+			{
+				"index" : 21,
+				"order" : 121,
+				"text" : "时间组件/Time module",
+				"type" : "group",
+				"value" : ""
+			},
+			"newproperty2" : 
+			{
+				"index" : 5,
+				"order" : 105,
+				"text" : "屏幕水流/Screen water flow",
+				"type" : "bool",
+				"value" : false
+			},
+			"newproperty20" : 
+			{
+				"index" : 7,
+				"order" : 107,
+				"text" : "音频识别/Audio recognition",
+				"type" : "group",
+				"value" : ""
+			},
+			"newproperty21" : 
+			{
+				"index" : 13,
+				"order" : 113,
+				"text" : "音频条/Audio strip",
+				"type" : "group",
+				"value" : ""
+			},
+			"newproperty22" : 
+			{
+				"condition" : "newproperty8.value",
+				"index" : 15,
+				"order" : 115,
+				"text" : "音频脉动/Audio pulsation",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty23" : 
+			{
+				"index" : 1,
+				"order" : 101,
+				"text" : "<br><p><center><img src=http://m.qpic.cn/psc?/V14PRR3o2EVCK9/TmEUgtj9EK6.7V8ajmQrEFM2Aw.RNP3ROnrUolYCxC8bnFxNioc4Qs5Iz78Y0ExQUxI0SCXcMuWyfWfHes61usnV9MFEUkLf6RAuRWWiAaM!/b&bo=OQF7ADkBewADByI!&rf=viewer_4>",
+				"value" : ""
+			},
+			"newproperty24" : 
+			{
+				"index" : 35,
+				"order" : 135,
+				"text" : "<big><b>ㅤㅤㅤ制作壁纸没有任何的收入<br/>ㅤㅤ如果你愿意投喂我我会很开心.<br><p><center><img src=http://m.qpic.cn/psc?/V53F0KrM0M8eB001ZqKr4DL7ZP28S0SE/TmEUgtj9EK6.7V8ajmQrEH3tepzE4v8yqMdJCpgeoo1FWGtzyPfAfQI8v7l5ksDeMepW1LkI7*pIgD1bfqEuPKq*lnYpFzGFwRTogJGGQrE!/b&bo=.gCWAPoAlgADByI!&rf=viewer_4>",
+				"value" : ""
+			},
+			"newproperty25" : 
+			{
+				"index" : 34,
+				"order" : 134,
+				"text" : "投喂",
+				"type" : "group",
+				"value" : ""
+			},
+			"newproperty26" : 
+			{
+				"condition" : "newproperty8.value",
+				"fraction" : true,
+				"index" : 20,
+				"max" : 1,
+				"min" : 0,
+				"order" : 120,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "不透明度/opacity",
+				"type" : "slider",
+				"value" : 0.6
+			},
+			"newproperty27" : 
+			{
+				"index" : 31,
+				"order" : 131,
+				"text" : "背景音乐/Background music",
+				"type" : "group",
+				"value" : ""
+			},
+			"newproperty28" : 
+			{
+				"fraction" : true,
+				"index" : 33,
+				"max" : 1,
+				"min" : 0,
+				"order" : 133,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "雨声/Rain",
+				"type" : "slider",
+				"value" : 0.7
+			},
+			"newproperty29" : 
+			{
+				"fraction" : true,
+				"index" : 32,
+				"max" : 1,
+				"min" : 0,
+				"order" : 132,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "音乐/Music",
+				"type" : "slider",
+				"value" : 0.8
+			},
+			"newproperty3" : 
+			{
+				"index" : 6,
+				"order" : 106,
+				"text" : "屏幕雨点/Screen raindrops",
+				"type" : "bool",
+				"value" : false
+			},
+			"newproperty4" : 
+			{
+				"index" : 9,
+				"order" : 109,
+				"text" : "歌曲名字/Song name",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty5" : 
+			{
+				"condition" : "newproperty4.value",
+				"index" : 10,
+				"order" : 110,
+				"text" : "脉动/pulse",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty6" : 
+			{
+				"condition" : "newproperty4.value",
+				"index" : 11,
+				"order" : 111,
+				"text" : "颜色/colour",
+				"type" : "color",
+				"value" : "0.8549019607843137 0.8588235294117647 0.8980392156862745"
+			},
+			"newproperty7" : 
+			{
+				"condition" : "newproperty4.value",
+				"fraction" : true,
+				"index" : 12,
+				"max" : 1,
+				"min" : 0,
+				"order" : 112,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "不透明度/opacity",
+				"type" : "slider",
+				"value" : 1
+			},
+			"newproperty8" : 
+			{
+				"condition" : "",
+				"index" : 14,
+				"order" : 114,
+				"text" : "开关/Switch",
+				"type" : "bool",
+				"value" : true
+			},
+			"newproperty9" : 
+			{
+				"condition" : "newproperty8.value",
+				"index" : 17,
+				"order" : 117,
+				"text" : "颜色前/Before color",
+				"type" : "color",
+				"value" : "0.5843137254901961 0.6 0.7254901960784313"
+			},
+			"opacity" : 
+			{
+				"condition" : "newproperty8.value",
+				"fraction" : true,
+				"index" : 18,
+				"max" : 1,
+				"min" : 0,
+				"order" : 118,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "不透明度/opacity",
+				"type" : "slider",
+				"value" : 1
+			},
+			"schemecolor" : 
+			{
+				"index" : 0,
+				"order" : 100,
+				"text" : "ui_browse_properties_scheme_color",
+				"type" : "color",
+				"value" : "0.2901960784313726 0.3411764705882353 0.5607843137254902"
+			},
+			"x" : 
+			{
+				"condition" : "newproperty12.value==2",
+				"fraction" : true,
+				"index" : 26,
+				"max" : 1,
+				"min" : 0,
+				"order" : 126,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "x轴/x axis",
+				"type" : "slider",
+				"value" : 0.5
+			},
+			"y" : 
+			{
+				"condition" : "newproperty12.value==2",
+				"fraction" : true,
+				"index" : 27,
+				"max" : 1,
+				"min" : 0,
+				"order" : 127,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "y轴/y axis",
+				"type" : "slider",
+				"value" : 0.9
+			},
+			"zzz" : 
+			{
+				"index" : 4,
+				"order" : 104,
+				"text" : "小猫zZ/Kitten zZ",
+				"type" : "bool",
+				"value" : true
+			}
+		},
+		"supportsaudioprocessing" : true,
+		"supportsvideo" : true,
+		"supportsvideoflags" : 2
+	},
+	"preview" : "preview.gif",
+	"ratingsex" : "none",
+	"ratingviolence" : "none",
+	"tags" : [ "Anime" ],
+	"title" : "Rainy Day",
+	"type" : "Scene",
+	"version" : 1,
+	"visibility" : "public",
+	"workshopid" : "3465215190",
+	"workshopurl" : "steam://url/CommunityFilePage/3465215190"
+}

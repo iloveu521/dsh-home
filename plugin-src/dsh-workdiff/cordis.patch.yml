@@ -1,0 +1,4 @@
+# dsh-workdiff bundle patch: one insert row mounting the plugin.
+- insert:
+    - id: workdiff
+      name: 'dsh-workdiff'

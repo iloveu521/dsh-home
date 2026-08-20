@@ -1,0 +1,41 @@
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1
+ui-conversation:
+  busyEnter: steer
+agent-default-model:
+  provider: deepseek-official
+  model: deepseek-v4-flash
+  reasoningEffort: high
+permission:
+  defaultPreset: danger-full-access
+agent-presets:
+  default: wsl-cordis
+dsh-better-sidebar:
+  openByDefault: false
+  defaultWidthPercent: 32
+  titleBarCompat: true
+skin-background:
+  backgroundOpacity: 0
+  enabled: true
+  backgroundBlurContent: 0
+pet:
+  enabled: true
+  visible: true
+  size: 160
+  right: 24
+  bottom: 24
+  petId: whale-girl
+skin-wallpaper:
+  selection: "upload/image_1-1787164036676.png"
+  mode: frame
+  sound: false
+  fit: cover
+  dim: 35
+  wallpaperOpacity: 55
+remote-web-ui:
+  autoTunnel: true
+ui-theme:
+  preference: dark
+dsh-workdiff:
+  openBottomOnNewSession: false
+  autoExpandOnChange: true

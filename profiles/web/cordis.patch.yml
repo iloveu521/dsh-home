@@ -1,0 +1,29 @@
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+- id: llm-deepseek
+  config:
+    # Keep transient provider outages recoverable for effectively long-running
+    # tasks while retaining a finite stop boundary for diagnostics/cleanup.
+    retryPolicy:
+      mode: normal
+      maxRetries: 10000
+      retryableCodes:
+        - EMPTY_RESPONSE
+        - RATE_LIMIT
+        - SERVER
+        - TIMEOUT
+        - TRANSPORT
+      backoff:
+        initialDelayMs: 1000
+        maxDelayMs: 30000
+        jitterRatio: 0.1
+- insert:
+    - id: dsh-paste-input
+      name: '@dsh-community/dsh-paste-input'
+- insert:
+    - id: dsh-memory-evolve
+      name: dsh-memory-evolve
+      config:
+        reviewEnabled: true
+        reviewInterval: 10

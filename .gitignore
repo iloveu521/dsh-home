@@ -1,0 +1,36 @@
+# Credentials and machine-local configuration
+.credentials.yaml
+.anonymous-user-id
+.env
+.env.*
+settings.yaml
+local/
+.dsh/
+
+# Runtime state: keep locally, never commit by default
+sessions/
+storages/
+memories/
+task-board/
+pet.json
+skin-center-active.json
+wsl-workspaces.json
+*.log
+
+# Generated profile state and dependencies
+**/node_modules/
+.pnpm-store/
+profiles/*/.dsh-market/
+profiles/*/cordis.yml
+profiles/*/*.bak-*
+
+# Wallpaper cache is reproducible; wallpaper sources and uploads are tracked
+skin-center/wallpapers/.cache/
+
+# Build/test noise
+coverage/
+.cache/
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db

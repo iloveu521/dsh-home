@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.linxin666.org/dsh-skin/v2.json",
+  "skinManifestVersion": 2,
+  "id": "mint-glass",
+  "name": "薄荷·玻璃壁纸版",
+  "nameEn": "Mint Glass",
+  "version": "1.0.0",
+  "author": "local user",
+  "tagline": "薄荷配色 + 半透明玻璃面板，让 WE 壁纸透出",
+  "description": "基于官方 Mint 皮肤，将面板背景改为半透明（玻璃效果），配合 Wallpaper Engine 壁纸使用可让壁纸可见。",
+  "tags": [
+    "mint",
+    "glass",
+    "wallpaper",
+    "local"
+  ],
+  "accent": "#2fbf8f",
+  "order": 99,
+  "contributes": {
+    "stylesheet": "skin.css"
+  }
+}
