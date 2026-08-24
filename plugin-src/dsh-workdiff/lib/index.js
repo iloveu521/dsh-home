@@ -3,8 +3,8 @@
  *
  * Serves the working-tree change feed for the browser side:
  *   GET /workdiff/status?session=<id>&cwd=<path>
- *       -> { ok, git, root, branch, files: [{ path, xy, status, adds, dels }] }
- *   GET /workdiff/diff?session=<id>&cwd=<path>&file=<rel>
+ *       -> { ok, git, root, branch, agentFiles, gitFiles, files }
+ *   GET /workdiff/diff?session=<id>&cwd=<path>&file=<rel>&mode=agent|git
  *       -> { ok, method, text, truncated, error? }
  *   GET /workdiff/cwd?session=<id>
  *       -> { ok, cwd? }  (fallback: resolve a session's cwd host-side)
@@ -17,7 +17,8 @@
  * level as the built-in sidebar fs/git routes.
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import z from '@deepseek-ai/schemastery'
 
@@ -33,9 +34,13 @@ export const Config = z.object({
   refreshMs: z.number().min(500).max(60000).default(2500),
 })
 
-export const inject = ['webServer', 'settings']
+export const inject = ['webServer', 'settings', 'sessions']
 
 const MAX_BUF = 64 * 1024 * 1024
+const MAX_BASELINE_BYTES = 64 * 1024 * 1024
+
+/** Session-start working-tree snapshots, used to isolate the agent's delta. */
+const sessionBaselines = new Map()
 
 /** Run one git command synchronously inside `cwd`. */
 function git(cwd, args) {
@@ -119,6 +124,65 @@ function badgeOf(xy) {
   return 'M'
 }
 
+/** Read one file state for a session baseline/current comparison. */
+function fileState(cwd, file, budget = { left: MAX_BASELINE_BYTES }) {
+  try {
+    const abs = resolve(cwd, file)
+    const st = statSync(abs)
+    if (!st.isFile()) return { exists: false, content: null, size: 0, mtimeMs: 0 }
+    let content = null
+    if (st.size <= budget.left) {
+      content = readFileSync(abs)
+      budget.left -= content.length
+    }
+    return { exists: true, content, size: st.size, mtimeMs: st.mtimeMs }
+  } catch {
+    return { exists: false, content: null, size: 0, mtimeMs: 0 }
+  }
+}
+
+function sameFileState(a, b) {
+  if (a.exists !== b.exists) return false
+  if (!a.exists) return true
+  if (a.content !== null && b.content !== null) return a.content.equals(b.content)
+  return a.size === b.size && a.mtimeMs === b.mtimeMs
+}
+
+/** Run a no-index diff between a saved baseline state and the current file. */
+function diffFromBaseline(cwd, file, before) {
+  const after = fileState(cwd, file)
+  if (before.content === null && before.exists) {
+    return { ok: false, text: '', adds: 0, dels: 0, error: 'session baseline is too large to diff' }
+  }
+  let dir
+  try {
+    dir = mkdtempSync(join(tmpdir(), 'dsh-workdiff-'))
+    const oldPath = join(dir, 'before')
+    if (before.exists) writeFileSync(oldPath, before.content ?? Buffer.alloc(0))
+    const newPath = resolve(cwd, file)
+    const args = ['diff', '--no-index', '--unified=3', '--', before.exists ? oldPath : '/dev/null', after.exists ? newPath : '/dev/null']
+    const result = git(cwd, args)
+    if (result.code !== 0 && result.code !== 1) {
+      return { ok: false, text: '', adds: 0, dels: 0, error: result.stderr.trim() || 'diff failed' }
+    }
+    const lines = result.stdout.split('\n')
+    let adds = 0
+    let dels = 0
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) adds += 1
+      else if (line.startsWith('-') && !line.startsWith('---')) dels += 1
+    }
+    if (lines[0]?.startsWith('diff --git ')) lines[0] = `diff --git a/${file} b/${file}`
+    const oldHeader = lines.findIndex((line) => line.startsWith('--- '))
+    const newHeader = lines.findIndex((line) => line.startsWith('+++ '))
+    if (oldHeader !== -1) lines[oldHeader] = before.exists ? `--- a/${file}` : '--- /dev/null'
+    if (newHeader !== -1) lines[newHeader] = after.exists ? `+++ b/${file}` : '+++ /dev/null'
+    return { ok: true, text: lines.join('\n'), adds, dels, error: null }
+  } finally {
+    if (dir !== undefined) rmSync(dir, { recursive: true, force: true })
+  }
+}
+
 /** A unified diff for an untracked file (everything added). */
 function fakeAddedDiff(cwd, file) {
   let content = ''
@@ -133,15 +197,8 @@ function fakeAddedDiff(cwd, file) {
   return { text: head + lines.map((l) => `+${l}`).join('\n') + (lines.length > 0 ? '\n' : ''), error: null }
 }
 
-// ── untracked-directory expansion ──────────────────────────────────────────
-/** Tool/noise directories skipped when walking an untracked directory. */
-const NOISE_DIRS = new Set([
-  'node_modules', '.git', '.hg', '.svn', '.venv', 'venv', '__pycache__', 'dist',
-  'build', '.next', '.nuxt', '.output', 'target', 'out', 'coverage', '.pytest_cache',
-  '.mypy_cache', '.ruff_cache', '.idea', '.vscode', '.claude', '.agents', '.dsh-reef',
-  '.cache', '.gitlab', '.github',
-])
-/** Max expanded untracked files per status call. */
+// ── untracked files ────────────────────────────────────────────────────────
+/** Max untracked files returned per status call. */
 const UNTRACKED_FILE_CAP = 600
 /** Max bytes read for an untracked file's line count. */
 const COUNT_SIZE_CAP = 2 * 1024 * 1024
@@ -161,79 +218,6 @@ function countLines(abs) {
   } catch {
     return 0
   }
-}
-
-/**
- * Expand an untracked directory (relative to cwd) into its files, skipping
- * noise dirs and bounding the walk. Returns [{ path, adds }].
- */
-function expandUntrackedDir(cwd, dir, budget) {
-  const out = []
-  const stack = [dir]
-  while (stack.length > 0 && out.length < budget) {
-    const rel = stack.pop()
-    let abs
-    try {
-      abs = resolve(cwd, rel)
-      if (!existsSync(abs)) continue
-      const st = statSync(abs)
-      if (st.isDirectory()) {
-        const children = []
-        try {
-          for (const name of readdirSync(abs)) children.push(name)
-        } catch { /* permission */ }
-        for (const name of children) {
-          if (out.length >= budget) break
-          if (NOISE_DIRS.has(name)) continue
-          stack.push(join(rel, name))
-        }
-      } else if (st.isFile()) {
-        const relPath = rel.split(sep).join('/')
-        out.push({ path: relPath, adds: countLines(abs) })
-      }
-    } catch { /* unreadable node */ }
-  }
-  return out
-}
-
-/** Per-cwd cache of the expanded untracked file list (invalidated by TTL). */
-const untrackedWalkCache = new Map()
-
-/** Expand all untracked entries; directory entries become their files. */
-function expandUntracked(cwd, entries) {
-  const now = Date.now()
-  const cacheKey = cwd
-  let cached = untrackedWalkCache.get(cacheKey)
-  if (cached === undefined || now - cached.ts > 15000) {
-    cached = { ts: now, dirs: new Map() }
-    untrackedWalkCache.set(cacheKey, cached)
-  }
-  const out = []
-  for (const entry of entries) {
-    if (entry.xy !== '??') continue
-    let abs
-    try {
-      abs = resolve(cwd, entry.path)
-      if (!existsSync(abs)) continue
-    } catch { continue }
-    let isDir = false
-    try { isDir = statSync(abs).isDirectory() } catch { /* gone */ }
-    if (isDir) {
-      let files = cached.dirs.get(entry.path)
-      if (files === undefined) {
-        files = expandUntrackedDir(cwd, entry.path, UNTRACKED_FILE_CAP - out.length)
-        cached.dirs.set(entry.path, files)
-      }
-      for (const f of files) {
-        if (out.length >= UNTRACKED_FILE_CAP) break
-        out.push({ path: f.path, xy: '??', status: 'U', adds: f.adds, dels: 0 })
-      }
-    } else {
-      out.push({ path: entry.path, xy: '??', status: 'U', adds: countLines(abs), dels: 0 })
-    }
-    if (out.length >= UNTRACKED_FILE_CAP) break
-  }
-  return out
 }
 
 /** Send a JSON response. */
@@ -265,23 +249,117 @@ async function resolveSessionCwd(ctx, sessionId) {
   if (typeof sessionId !== 'string' || sessionId === '') return undefined
   try {
     const live = ctx.get('sessions')?.get?.(sessionId)
-    const liveCwd = live?.meta?.cwd ?? live?.cwd
+    const liveCwd = live?.header?.cwd ?? live?.meta?.cwd ?? live?.cwd
     if (typeof liveCwd === 'string' && liveCwd !== '') return liveCwd
   } catch { /* fall through */ }
   try {
     const query = ctx.get('sessionQuery')
     if (query !== undefined) {
       const snap = await query.readSession(sessionId)
-      const cwd = snap?.meta?.cwd ?? snap?.header?.cwd
+      const cwd = snap?.session?.cwd ?? snap?.meta?.cwd ?? snap?.header?.cwd
       if (typeof cwd === 'string' && cwd !== '') return cwd
     }
   } catch { /* fall through */ }
   return undefined
 }
 
+/** Collect the repository-wide uncommitted file list. */
+function workingStatus(cwd) {
+  // Let Git enumerate every untracked file itself. Unlike a manual directory
+  // walk, this honors repository, info/exclude and global ignore rules all the
+  // way down an otherwise-untracked directory tree.
+  const statusRes = git(cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])
+  if (!statusRes.ok) return { git: false, branch: '', files: [], error: statusRes.stderr.trim() || 'not a git repository' }
+  const branch = git(cwd, ['branch', '--show-current']).stdout.trim()
+  const unstaged = parseNumstat(git(cwd, ['diff', '--numstat']).stdout)
+  const staged = parseNumstat(git(cwd, ['diff', '--cached', '--numstat']).stdout)
+  const tracked = []
+  const untracked = []
+  for (const entry of parseStatus(statusRes.stdout)) {
+    if (entry.xy === '??') untracked.push(entry)
+    else tracked.push(entry)
+  }
+  const files = tracked.map((entry) => {
+    const us = unstaged.get(entry.path)
+    const st = staged.get(entry.path)
+    return {
+      path: entry.path,
+      xy: entry.xy,
+      status: badgeOf(entry.xy),
+      adds: (us?.adds ?? 0) + (st?.adds ?? 0),
+      dels: (us?.dels ?? 0) + (st?.dels ?? 0),
+    }
+  })
+  const shownUntracked = untracked.slice(0, UNTRACKED_FILE_CAP)
+  files.push(...shownUntracked.map((entry) => ({
+    path: entry.path,
+    xy: '??',
+    status: 'U',
+    adds: countLines(resolve(cwd, entry.path)),
+    dels: 0,
+  })))
+  files.sort((a, b) => a.path.localeCompare(b.path))
+  return { git: true, branch, files, truncated: untracked.length > UNTRACKED_FILE_CAP, error: null }
+}
+
+/** Capture the dirty files exactly as they were when this session started. */
+function captureBaseline(sessionId, cwd) {
+  if (sessionBaselines.has(sessionId) || typeof cwd !== 'string' || cwd === '') return
+  const status = workingStatus(cwd)
+  const known = new Map()
+  const budget = { left: MAX_BASELINE_BYTES }
+  if (status.git) {
+    for (const file of status.files) known.set(file.path, fileState(cwd, file.path, budget))
+  }
+  sessionBaselines.set(sessionId, { cwd, known, createdAt: Date.now() })
+}
+
+/** Split current changes into the session's agent delta and the full Git delta. */
+function splitChanges(cwd, status, baseline) {
+  const gitFiles = status.files
+  if (baseline === undefined || baseline.cwd !== cwd) return { agentFiles: [], gitFiles, baselineReady: false }
+  const currentByPath = new Map(gitFiles.map((file) => [file.path, file]))
+  const paths = new Set([...baseline.known.keys(), ...currentByPath.keys()])
+  const agentFiles = []
+  for (const path of paths) {
+    const gitFile = currentByPath.get(path)
+    const before = baseline.known.get(path)
+    if (before === undefined) {
+      // It was clean (or absent) at session start, so the ordinary HEAD diff is
+      // also the agent-session diff.
+      if (gitFile !== undefined) agentFiles.push({ ...gitFile, source: 'head' })
+      continue
+    }
+    const after = fileState(cwd, path)
+    if (sameFileState(before, after)) continue
+    const delta = diffFromBaseline(cwd, path, before)
+    agentFiles.push({
+      path,
+      xy: gitFile?.xy ?? (before.exists && !after.exists ? ' D' : (!before.exists && after.exists ? '??' : ' M')),
+      status: before.exists && !after.exists ? 'D' : (!before.exists && after.exists ? 'A' : 'M'),
+      adds: delta.adds,
+      dels: delta.dels,
+      source: 'baseline',
+      diffError: delta.ok ? null : delta.error,
+    })
+  }
+  agentFiles.sort((a, b) => a.path.localeCompare(b.path))
+  return { agentFiles, gitFiles, baselineReady: true }
+}
+
 export function apply(ctx) {
   // Register the settings namespace so the client's settingsScope writes validate.
   ctx.settings.register('dsh-workdiff', Config)
+
+  // The baseline must be captured at publication time, before the first agent
+  // turn can mutate the workspace. The route keeps a lazy fallback for sessions
+  // that were already live when this plugin was hot-reloaded.
+  ctx.on('session/created', (session) => {
+    captureBaseline(session.id, session.header?.cwd)
+  }, { global: true })
+  ctx.on('session/disposed', (session) => {
+    sessionBaselines.delete(session.id)
+  }, { global: true })
 
   ctx.webServer.register({
     kind: 'exact',
@@ -305,51 +383,34 @@ export function apply(ctx) {
       const cwd = params.get('cwd') ?? ''
       if (!allowRequest(req, cwd)) return send(res, 403, { ok: false, error: 'forbidden' })
 
-      const statusRes = git(cwd, ['status', '--porcelain=v1', '-z'])
-      if (!statusRes.ok) {
+      const status = workingStatus(cwd)
+      if (!status.git) {
         return send(res, 200, {
           ok: true,
           git: false,
           root: cwd,
-          branch: '',
+          branch: status.branch,
           files: [],
-          error: statusRes.stderr.trim() || 'not a git repository',
+          agentFiles: [],
+          gitFiles: [],
+          error: status.error,
         })
       }
-      const branch = git(cwd, ['branch', '--show-current']).stdout.trim()
-      const unstaged = parseNumstat(git(cwd, ['diff', '--numstat']).stdout)
-      const staged = parseNumstat(git(cwd, ['diff', '--cached', '--numstat']).stdout)
-
-      const files = []
-      const untrackedExpanded = []
-      const plain = []
-      for (const entry of parseStatus(statusRes.stdout)) {
-        if (entry.xy === '??') plain.push(entry)
-        else files.push(entry)
-      }
-      // Expand untracked directories into real files (capped, noise dirs skipped).
-      for (const u of expandUntracked(cwd, plain)) untrackedExpanded.push(u)
-      const result = files.map((entry) => {
-        const us = unstaged.get(entry.path)
-        const st = staged.get(entry.path)
-        return {
-          path: entry.path,
-          xy: entry.xy,
-          status: badgeOf(entry.xy),
-          adds: (us?.adds ?? 0) + (st?.adds ?? 0),
-          dels: (us?.dels ?? 0) + (st?.dels ?? 0),
-        }
-      })
-      result.push(...untrackedExpanded)
-      result.sort((a, b) => a.path.localeCompare(b.path))
+      const sessionId = params.get('session') ?? ''
+      if (!sessionBaselines.has(sessionId)) captureBaseline(sessionId, cwd)
+      const groups = splitChanges(cwd, status, sessionBaselines.get(sessionId))
 
       send(res, 200, {
         ok: true,
         git: true,
         root: cwd,
-        branch,
-        files: result,
-        truncated: untrackedExpanded.length >= UNTRACKED_FILE_CAP,
+        branch: status.branch,
+        // `files` remains as a compatibility alias for older clients.
+        files: groups.gitFiles,
+        agentFiles: groups.agentFiles,
+        gitFiles: groups.gitFiles,
+        baselineReady: groups.baselineReady,
+        truncated: status.truncated,
         error: null,
       })
     },
@@ -372,9 +433,29 @@ export function apply(ctx) {
       }
 
       const isUntracked = params.get('untracked') === '1'
+      const mode = params.get('mode') ?? 'git'
       let text = ''
       let method = ''
-      if (isUntracked) {
+      if (mode === 'agent') {
+        const sessionId = params.get('session') ?? ''
+        const baseline = sessionBaselines.get(sessionId)
+        const before = baseline?.cwd === cwd ? baseline.known.get(file) : undefined
+        if (before !== undefined) {
+          const delta = diffFromBaseline(cwd, file, before)
+          if (!delta.ok) return send(res, 200, { ok: false, error: delta.error })
+          text = delta.text
+          method = 'session-baseline'
+        } else if (isUntracked) {
+          const fake = fakeAddedDiff(cwd, file)
+          if (fake.error !== null) return send(res, 200, { ok: false, error: fake.error })
+          text = fake.text
+          method = 'untracked'
+        } else {
+          const head = git(cwd, ['diff', 'HEAD', '--unified=3', '--', file])
+          text = head.stdout
+          method = 'HEAD'
+        }
+      } else if (isUntracked) {
         const fake = fakeAddedDiff(cwd, file)
         if (fake.error !== null) return send(res, 200, { ok: false, error: fake.error })
         text = fake.text

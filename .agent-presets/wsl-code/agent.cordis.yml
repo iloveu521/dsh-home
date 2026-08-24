@@ -217,9 +217,9 @@
     fs: true
   config:
     - id: shell-wsl
-      name: 'F:/workspace/dsh-home/profiles/web/node_modules/dsh-wsl-workspace/lib/shell.js'
+      name: '/home/gelpup/dsh-home/profiles/web/node_modules/dsh-wsl-workspace/lib/shell.js'
     - id: fs-wsl
-      name: 'F:/workspace/dsh-home/profiles/web/node_modules/dsh-wsl-workspace/lib/fs.js'
+      name: '/home/gelpup/dsh-home/profiles/web/node_modules/dsh-wsl-workspace/lib/fs.js'
     - id: tool-bash
       name: '@deepseek-ai/dsh-tool-bash'
     - id: tool-fs

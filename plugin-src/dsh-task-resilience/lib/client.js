@@ -82,6 +82,18 @@ window.__ModuleLoader__.load({ id: 'dsh-task-resilience', factory(require) {
     return String(failure.message ?? failure.error?.message ?? failure.code ?? '未知错误')
   }
 
+  function retryTitle(current, phase, max) {
+    const code = String(current.failure?.code ?? '')
+    const problem = {
+      EMPTY_RESPONSE: '模型返回了空内容',
+      RATE_LIMIT: '模型服务正在限流',
+      SERVER: '模型服务异常',
+      TIMEOUT: '模型响应超时',
+      TRANSPORT: '与模型服务的连接中断',
+    }[code] ?? '模型请求失败'
+    return `${problem}，${phase}（${current.retry}/${max}）`
+  }
+
   function statusFromSession(snapshot) {
     if (!snapshot) return EMPTY
     const turn = latestTurn(snapshot)
@@ -95,10 +107,10 @@ window.__ModuleLoader__.load({ id: 'dsh-task-resilience', factory(require) {
       const deadline = current.retryState === 'scheduled'
         ? Number(current.time ?? Date.now()) + Number(current.delayMs ?? 0)
         : 0
-      const phase = current.retryState === 'scheduled' ? '等待后重试' : '正在重新连接模型服务'
+      const phase = current.retryState === 'scheduled' ? '等待后重试' : '正在重试模型请求'
       return {
         kind: 'retrying',
-        title: `连接中断，${phase}（${current.retry}/${max}）`,
+        title: retryTitle(current, phase, max),
         detail: failureText(current.failure),
         code: String(current.failure?.code ?? ''),
         sticky: true,

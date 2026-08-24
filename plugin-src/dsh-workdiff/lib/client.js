@@ -4,9 +4,9 @@
  *
  * Features (all inside dsh-better-sidebar's RIGHT sidebar):
  *  1. A "改动" tab (`workdiff`) registered through `ctx.betterSidebar`:
- *     live working-tree changes with +N/-M counts, click a file to expand its
- *     unified diff inline, and a file-count badge on the tab.
- *  2. Auto-expand: when working-tree changes appear during a session, the
+ *     agent-session changes are shown by default, with an explicit switch to
+ *     all uncommitted Git changes. Files expand to an inline unified diff.
+ *  2. Auto-expand: when agent-session changes appear during a session, the
  *     sidebar opens to the changes tab (setting `autoExpandOnChange`, default
  *     on; throttled, including the first non-empty snapshot so fast file
  *     writes are not missed).
@@ -45,7 +45,7 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     }
   }
 
-  const statusStore = createStore({ data: null, error: null, loading: false, ts: 0, sessionId: null })
+  const statusStore = createStore({ data: null, error: null, loading: false, ts: 0, sessionId: null, focusAgent: 0 })
 
   /** The plugin context (set in apply; read by helpers). */
   let ctxRef = null
@@ -113,10 +113,10 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     }
   }
 
-  /** Signature of the change set (path:status:adds:dels). */
+  /** Signature of the agent-session change set (path:status:adds:dels). */
   function changeSignature(data) {
-    if (!data || data.ok !== true || data.git !== true || !Array.isArray(data.files)) return ''
-    return data.files.map((f) => `${f.path}:${f.status}:${f.adds}:${f.dels}`).join('|')
+    if (!data || data.ok !== true || data.git !== true || !Array.isArray(data.agentFiles)) return ''
+    return data.agentFiles.map((f) => `${f.path}:${f.status}:${f.adds}:${f.dels}`).join('|')
   }
 
   /** One status fetch against the current session; writes the status store. */
@@ -128,13 +128,13 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     statusStore.set({ ...statusStore.get(), loading: true })
     getJSON('/workdiff/status', params)
       .then((data) => {
-        statusStore.set({ data, error: null, loading: false, ts: Date.now(), sessionId: s.id })
+        statusStore.set((state) => ({ ...state, data, error: null, loading: false, ts: Date.now(), sessionId: s.id }))
         const sig = changeSignature(data)
         if (sig !== '' && sig !== lastSig) maybeAutoExpand()
         lastSig = sig
       })
       .catch((error) => {
-        statusStore.set({ data: null, error: String(error), loading: false, ts: Date.now(), sessionId: s.id })
+        statusStore.set((state) => ({ ...state, data: null, error: String(error), loading: false, ts: Date.now(), sessionId: s.id }))
       })
   }
 
@@ -147,7 +147,7 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     if (key !== lastSessionKey) {
       lastSessionKey = key
       lastSig = ''
-      statusStore.set({ data: null, error: null, loading: false, ts: 0, sessionId: s?.id ?? null })
+      statusStore.set({ data: null, error: null, loading: false, ts: 0, sessionId: s?.id ?? null, focusAgent: 0 })
     }
     sessionRef = s
     if (s && !s.cwd) {
@@ -203,6 +203,7 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     if (!s?.id) return
     lastExpandAt = now
     try {
+      statusStore.set((state) => ({ ...state, focusAgent: (state.focusAgent ?? 0) + 1 }))
       bs.openTab(
         { type: 'workdiff', path: 'workdiff://changes', title: fallbackT('entryLabel') },
         { sessionId: s.id, cwd: s.cwd },
@@ -225,7 +226,7 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
         badge: () => {
           try {
             const d = statusStore.get().data
-            return d && d.ok === true && d.git === true && Array.isArray(d.files) ? d.files.length : null
+            return d && d.ok === true && d.git === true && Array.isArray(d.agentFiles) ? d.agentFiles.length : null
           } catch {
             return null
           }
@@ -242,36 +243,42 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
   // ── locale dictionaries ───────────────────────────────────────────────────
   const zh = {
     title: '\u4ee3\u7801\u6539\u52a8\u4e0e\u5e95\u680f',
-    desc: '\u5de5\u4f5c\u533a\u6587\u4ef6\u6539\u52a8\u5b9e\u65f6\u540c\u6b65\u5230\u4fa7\u8fb9\u680f\uff0c\u6539\u52a8\u65f6\u81ea\u52a8\u5c55\u5f00\uff1b\u65b0\u4f1a\u8bdd\u81ea\u52a8\u6253\u5f00\u5e95\u680f\uff08\u9ed8\u8ba4\u7ec8\u7aef\uff09\u3002',
+    desc: '\u9ed8\u8ba4\u5c55\u793a agent \u672c\u4f1a\u8bdd\u7684\u4ee3\u7801\u6539\u52a8\uff0c\u53ef\u5207\u6362\u67e5\u770b Git \u5168\u90e8\u672a\u63d0\u4ea4\u6539\u52a8\uff1b\u65b0\u4f1a\u8bdd\u81ea\u52a8\u6253\u5f00\u5e95\u680f\u3002',
     openBottomLabel: '\u65b0\u4f1a\u8bdd\u81ea\u52a8\u6253\u5f00\u5e95\u680f',
     openBottomDesc: '\u65b0\u4f1a\u8bdd\u5f00\u59cb\u65f6\u81ea\u52a8\u5c55\u5f00\u5e95\u90e8\u9762\u677f\u5e76\u6253\u5f00\u7ec8\u7aef\u6807\u7b7e\uff08\u53ef\u5728\u4fa7\u8fb9\u5361\u7247\u8bbe\u7f6e\u4e2d\u5173\u95ed\uff09\u3002',
     autoExpandLabel: '\u4ee3\u7801\u6539\u52a8\u65f6\u81ea\u52a8\u5c55\u5f00\u4fa7\u680f',
-    autoExpandDesc: '\u5de5\u4f5c\u533a\u51fa\u73b0\u65b0\u6539\u52a8\u65f6\uff0c\u81ea\u52a8\u6253\u5f00\u53f3\u4fa7\u680f\u5e76\u5207\u6362\u5230\u300c\u6539\u52a8\u300d\u6807\u7b7e\u9875\u3002',
+    autoExpandDesc: 'Agent \u672c\u4f1a\u8bdd\u4ea7\u751f\u65b0\u6539\u52a8\u65f6\uff0c\u81ea\u52a8\u6253\u5f00\u53f3\u4fa7\u680f\u5e76\u5c55\u793a agent \u6539\u52a8\u3002',
     entryLabel: '\u6539\u52a8',
     entryTitle: '\u4ee3\u7801\u6539\u52a8\uff08\u5de5\u4f5c\u533a\u6539\u52a8\u5b9e\u65f6\u540c\u6b65\uff09',
     drawerTitle: '\u4ee3\u7801\u6539\u52a8',
+    agentChanges: 'Agent \u6539\u52a8',
+    gitChanges: 'Git \u672a\u63d0\u4ea4',
     refresh: '\u5237\u65b0',
     close: '\u5173\u95ed',
     noChanges: '\u6ca1\u6709\u6539\u52a8',
-    noChangesHint: '\u5de5\u4f5c\u533a\u6587\u4ef6\u7684\u589e\u5220\u4f1a\u5b9e\u65f6\u663e\u793a\u5728\u8fd9\u91cc',
+    noChangesHint: '\u672c\u4f1a\u8bdd\u4e2d agent \u5c1a\u672a\u4fee\u6539\u4ee3\u7801',
+    noGitChangesHint: '\u5f53\u524d\u5206\u652f\u6ca1\u6709\u672a\u63d0\u4ea4\u6539\u52a8',
     notGit: '\u5f53\u524d\u5de5\u4f5c\u533a\u4e0d\u662f Git \u4ed3\u5e93',
     loading: '\u52a0\u8f7d\u4e2d\u2026',
     error: '\u52a0\u8f7d\u5931\u8d25',
   }
   const en = {
     title: 'Code Changes & Bottom Bar',
-    desc: 'Working-tree file changes sync to the sidebar and auto-expand on change; new sessions auto-open the bottom panel (terminal by default).',
+    desc: 'Shows this agent session\'s changes by default, with a switch for all uncommitted Git changes; new sessions auto-open the bottom panel.',
     openBottomLabel: 'Auto-open bottom bar on new sessions',
     openBottomDesc: 'Expands the bottom panel and opens a terminal tab when a new session starts (disable in Side card settings).',
     autoExpandLabel: 'Auto-expand sidebar on code changes',
-    autoExpandDesc: 'When new working-tree changes appear, open the right sidebar on the "Changes" tab.',
+    autoExpandDesc: 'When this agent session produces new changes, open the right sidebar on the agent changes view.',
     entryLabel: 'Changes',
     entryTitle: 'Code changes (live sync of working-tree edits)',
     drawerTitle: 'Code Changes',
+    agentChanges: 'Agent changes',
+    gitChanges: 'Git uncommitted',
     refresh: 'Refresh',
     close: 'Close',
     noChanges: 'No changes',
-    noChangesHint: 'Working-tree additions/deletions appear here live',
+    noChangesHint: 'The agent has not changed code in this session',
+    noGitChangesHint: 'The current branch has no uncommitted changes',
     notGit: 'Current workspace is not a Git repository',
     loading: 'Loading\u2026',
     error: 'Load failed',
@@ -286,6 +293,11 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     '.wd-tab-branch{flex:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-secondary,#9aa3b2);border:1px solid var(--dsw-alias-border-l1,#26282e);border-radius:999px;padding:1px 8px}',
     '.wd-icon-btn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary,#9aa3b2);cursor:pointer}',
     '.wd-icon-btn:hover{background:var(--dsw-specific-sidebar-nav-item-hover,rgba(255,255,255,.06));color:var(--dsw-alias-label-primary,#e8eaed)}',
+    '.wd-view-switch{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:2px;margin:0 8px 7px;padding:2px;border:1px solid var(--dsw-alias-border-l1,#26282e);border-radius:8px;background:var(--dsw-alias-bg-base,#17181c)}',
+    '.wd-view-btn{min-width:0;border:0;border-radius:6px;padding:5px 8px;background:transparent;color:var(--dsw-alias-label-secondary,#9aa3b2);font-size:12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.wd-view-btn:hover{color:var(--dsw-alias-label-primary,#e8eaed)}',
+    '.wd-view-btn.wd-active{background:var(--dsw-specific-sidebar-nav-item-hover,rgba(255,255,255,.08));color:var(--dsw-alias-label-primary,#e8eaed);font-weight:600}',
+    '.wd-view-count{margin-left:4px;opacity:.72}',
     '.wd-tab-body{flex:1;min-height:0;overflow:auto;padding:2px 6px 8px}',
     '.wd-state{padding:28px 16px;text-align:center;color:var(--dsw-alias-label-secondary,#9aa3b2)}',
     '.wd-state-hint{margin-top:6px;font-size:12px;opacity:.7}',
@@ -360,16 +372,37 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     const status = useSyncExternalStore(statusStore.subscribe, statusStore.get)
     const [expanded, setExpanded] = useState(null)
     const [diffCache, setDiffCache] = useState({})
+    const [view, setView] = useState('agent')
 
     // Refresh when the tab becomes visible or the session changes.
     useEffect(() => {
       if (visible) pollOnce()
     }, [visible, scope?.sessionId])
 
+    // Every session opens on the focused agent delta, never the repository-wide view.
+    useEffect(() => {
+      setView('agent')
+      setExpanded(null)
+      setDiffCache({})
+    }, [scope?.sessionId])
+
+    // Auto-expansion always focuses the agent subset, even if the user had
+    // previously switched this mounted tab to the repository-wide Git view.
+    useEffect(() => {
+      if ((status.focusAgent ?? 0) > 0) {
+        setView('agent')
+        setExpanded(null)
+      }
+    }, [status.focusAgent])
+
     const data = status.data
-    const files = data?.ok === true && data.git === true ? data.files : []
+    const agentFiles = data?.ok === true && data.git === true && Array.isArray(data.agentFiles) ? data.agentFiles : []
+    const gitFiles = data?.ok === true && data.git === true
+      ? (Array.isArray(data.gitFiles) ? data.gitFiles : (Array.isArray(data.files) ? data.files : []))
+      : []
+    const files = view === 'git' ? gitFiles : agentFiles
     const openFile = expanded && files.find((f) => f.path === expanded)
-    const diff = openFile ? diffCache[openFile.path] : null
+    const diff = openFile ? diffCache[`${view}:${openFile.path}`] : null
 
     const toggleFile = (file) => {
       if (expanded === file.path) {
@@ -377,19 +410,21 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
         return
       }
       setExpanded(file.path)
-      if (diffCache[file.path]) return
+      const cacheKey = `${view}:${file.path}`
+      if (diffCache[cacheKey]) return
       if (!scope) return
       getJSON('/workdiff/diff', {
         session: scope.sessionId,
-        cwd: scope.cwd ?? '',
+        cwd: scope.cwd ?? data?.root ?? '',
         file: file.path,
         untracked: file.xy === '??' ? '1' : '0',
+        mode: view,
       })
         .then((r) => {
-          setDiffCache((c) => ({ ...c, [file.path]: r }))
+          setDiffCache((c) => ({ ...c, [cacheKey]: r }))
         })
         .catch((error) => {
-          setDiffCache((c) => ({ ...c, [file.path]: { ok: false, error: String(error) } }))
+          setDiffCache((c) => ({ ...c, [cacheKey]: { ok: false, error: String(error) } }))
         })
     }
 
@@ -400,7 +435,7 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
     } else if (files.length === 0) {
       body = h('div', { className: 'wd-state' },
         h('div', null, status.data?.ok === true ? t('noChanges') : (status.error ? t('error') : t('loading'))),
-        status.data?.ok === true ? h('div', { className: 'wd-state-hint' }, t('noChangesHint')) : null)
+        status.data?.ok === true ? h('div', { className: 'wd-state-hint' }, t(view === 'git' ? 'noGitChangesHint' : 'noChangesHint')) : null)
     } else {
       const rows = []
       for (const file of files) {
@@ -431,6 +466,17 @@ window.__ModuleLoader__.load({ id: 'dsh-workdiff', factory: (require) => {
         h('span', { className: 'wd-tab-title' }, t('drawerTitle')),
         data?.ok === true && data.git === true && data.branch ? h('span', { className: 'wd-tab-branch' }, data.branch) : null,
         h('button', { type: 'button', className: 'wd-icon-btn', title: t('refresh'), 'aria-label': t('refresh'), onClick: () => pollOnce() }, IconDiff(13))),
+      h('div', { className: 'wd-view-switch', role: 'tablist', 'aria-label': t('drawerTitle') },
+        h('button', {
+          type: 'button', role: 'tab', 'aria-selected': view === 'agent' ? 'true' : 'false',
+          className: 'wd-view-btn' + (view === 'agent' ? ' wd-active' : ''),
+          onClick: () => { setView('agent'); setExpanded(null) },
+        }, t('agentChanges'), h('span', { className: 'wd-view-count' }, agentFiles.length)),
+        h('button', {
+          type: 'button', role: 'tab', 'aria-selected': view === 'git' ? 'true' : 'false',
+          className: 'wd-view-btn' + (view === 'git' ? ' wd-active' : ''),
+          onClick: () => { setView('git'); setExpanded(null) },
+        }, t('gitChanges'), h('span', { className: 'wd-view-count' }, gitFiles.length))),
       h('div', { className: 'wd-tab-body' }, body))
   }
 

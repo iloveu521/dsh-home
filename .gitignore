@@ -30,6 +30,15 @@ skin-center/wallpapers/.cache/
 # Build/test noise
 coverage/
 .cache/
+**/dist/
+**/build/
+**/out/
+**/.output/
+**/.next/
+**/.nuxt/
+*.tsbuildinfo
+*.py[cod]
+__pycache__/
 *.tmp
 *.swp
 .DS_Store

@@ -3,8 +3,8 @@
 # overrides, disables, and insert lists; `!!js` expressions allowed).
 - id: llm-deepseek
   config:
-    # Keep transient provider outages recoverable for effectively long-running
-    # tasks while retaining a finite stop boundary for diagnostics/cleanup.
+    # Native DeepSeek owns retryPolicy at adapter level. Dynamically declared
+    # llm-pi-ai routes own it inside each settings.yaml provider profile.
     retryPolicy:
       mode: normal
       maxRetries: 10000

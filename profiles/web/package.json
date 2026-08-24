@@ -40,8 +40,7 @@
         "dsh-workdiff",
         "dsh-task-resilience",
         "dshmarket",
-        "@linxin666/dsh-client-ui-skin-center",
-        "dsh-wsl-workspace"
+        "@linxin666/dsh-client-ui-skin-center"
       ]
     }
   }

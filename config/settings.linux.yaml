@@ -18,7 +18,7 @@ pet:
   enabled: true
   visible: true
   size: 160
-  right: 24
+  right: 96
   bottom: 24
   petId: whale-girl
 skin-wallpaper:
