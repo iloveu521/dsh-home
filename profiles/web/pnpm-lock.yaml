@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: false
   excludeLinksFromLockfile: false
 
+overrides:
+  '@linxin666/dsh-desktop-launcher': link:../../plugin-src/dsh-desktop-launcher
+
+patchedDependencies:
+  '@linxin666/dsh-client-ui-git-graph@0.2.4': d06169c00189fc15dad0bf42538d09390c93e643f787316710de62aa2357b5de
+
 importers:
 
   .:
@@ -17,6 +23,9 @@ importers:
       '@linxin666/dsh-client-ui-skin-center':
         specifier: link:../../plugin-src/dsh-client-ui-skin-center
         version: link:../../plugin-src/dsh-client-ui-skin-center
+      '@linxin666/dsh-desktop-launcher':
+        specifier: link:../../plugin-src/dsh-desktop-launcher
+        version: link:../../plugin-src/dsh-desktop-launcher
       '@linxin666/dsh-web-ui-all':
         specifier: ^0.2.4
         version: 0.2.4(react@18.3.1)
@@ -45,8 +54,8 @@ importers:
         specifier: link:../../plugin-src/dsh-memory-evolve
         version: link:../../plugin-src/dsh-memory-evolve
       dsh-reef:
-        specifier: ^1.5.2
-        version: 1.5.2
+        specifier: link:../../plugin-src/dsh-reef
+        version: link:../../plugin-src/dsh-reef
       dsh-skill-fuzzy:
         specifier: github:ch1bug/dsh-skill-fuzzy
         version: https://codeload.github.com/ch1bug/dsh-skill-fuzzy/tar.gz/1ece049595d140855d63e18d7e21ac237b127d7c
@@ -57,8 +66,8 @@ importers:
         specifier: link:../../plugin-src/dsh-workdiff
         version: link:../../plugin-src/dsh-workdiff
       dsh-wsl-workspace:
-        specifier: ^0.2.3
-        version: 0.2.3
+        specifier: link:../../plugin-src/dsh-wsl-workspace
+        version: link:../../plugin-src/dsh-wsl-workspace
       dshmarket:
         specifier: ^1.13.1
         version: 1.13.1
@@ -259,13 +268,6 @@ packages:
     resolution: {integrity: sha512-ukCo8o93oxSDRVYgsscuxuiR+evSNJyrDCV9UKghLmffE7QwsilPW43fNv793/sNQNU6bc0vShdl/AVSe7rfOw==}
     peerDependencies:
       react: ^18.2.0
-
-  '@linxin666/dsh-desktop-launcher@0.2.4':
-    resolution: {integrity: sha512-6XND/mj58BMHFJQ7LEFLOyunQKl1ivlbBvU7v8JvDnVcxupH1EzjWsbC/bYuPG7UYjIFTEjUrKVQdZ2mIxESjw==}
-    engines: {node: ^22.19.0 || >=24.0.0}
-    peerDependencies:
-      react: ^18.2.0
-      react-dom: ^18.2.0
 
   '@linxin666/dsh-liangshen@0.2.4':
     resolution: {integrity: sha512-nsno6DPAnR3Mt6qw7pNEFNihWvFRC8J8g1nNWJqWafvIDSZvqto4/zaYC12mHlyF/7ULTja87llNNzqCeP0ArA==}
@@ -929,23 +931,9 @@ packages:
   dsh-history-tree@1.0.3:
     resolution: {integrity: sha512-xsg37SVbCmLGpu0S5sPMrHqtdK14stNtXAe97XpGY75vi9l4KUKdDPCjxWMLqVMGEshiIejQ0TlnzHVqdRyitg==}
 
-  dsh-reef@1.5.2:
-    resolution: {integrity: sha512-QHnauPJYizjWXfUyXXTnJrxwzwzerSslIM08e2/JicvRTT1waRHWCVfs7BZSKnsYtjpQySvk9HBVO7AaCJSUjw==}
-    engines: {node: '>=22'}
-
   dsh-skill-fuzzy@https://codeload.github.com/ch1bug/dsh-skill-fuzzy/tar.gz/1ece049595d140855d63e18d7e21ac237b127d7c:
     resolution: {gitHosted: true, integrity: sha512-gOFb0IA7o3lMUXOWJK0Xut9jLeqMwkLoXxzbz60WloU+w4+hzE0DSWf7o8gyOcgyuzSsVhcqnm49LYESqsUcsw==, tarball: https://codeload.github.com/ch1bug/dsh-skill-fuzzy/tar.gz/1ece049595d140855d63e18d7e21ac237b127d7c}
     version: 0.1.0
-
-  dsh-wsl-workspace@0.2.3:
-    resolution: {integrity: sha512-3L8zcNFLi8WU3OM0nVrm2wLG/6gtKKRzKMPznRIxJ1iAmzALLzkaO/HmVDKJWC0uzdRjZ+f3aKuGk/dVJfwY8g==}
-    peerDependencies:
-      '@deepseek-ai/cordis': '*'
-      '@deepseek-ai/dsh-fs': '*'
-      '@deepseek-ai/dsh-fs-local': '*'
-      '@deepseek-ai/dsh-shell': '*'
-      '@deepseek-ai/dsh-subprocess': '*'
-      '@deepseek-ai/dsh-timeout': '*'
 
   dshmarket@1.13.1:
     resolution: {integrity: sha512-CmDQe22x5p6WgAvFtcgKf+f1SzwrnEV8rLgO+g9DoZ0iVJodY+/4n8v2gbg2F1sM0a3qK4JqLIsOpUjX/PqC9w==}
@@ -1437,11 +1425,6 @@ packages:
 
   pdfkit@0.15.2:
     resolution: {integrity: sha512-s3GjpdBFSCaeDSX/v73MI5UsPqH1kjKut2AXCgxQ5OH10lPVOu5q5vLAG0OCpz/EYqKsTSw1WHpENqMvp43RKg==}
-
-  playwright-core@1.62.1:
-    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
-    engines: {node: '>=20'}
-    hasBin: true
 
   png-js@1.1.0:
     resolution: {integrity: sha512-PM/uYGzGdNSzqeOgly68+6wKQDL1SY0a/N+OEa/+br6LnHWOAJB0Npiamnodfq3jd2LS/i2fMeOKSAILjA+m5Q==}
@@ -2025,7 +2008,7 @@ snapshots:
       react: 18.3.1
       schemastery: 3.18.0
 
-  '@linxin666/dsh-client-ui-git-graph@0.2.4(react@18.3.1)':
+  '@linxin666/dsh-client-ui-git-graph@0.2.4(patch_hash=d06169c00189fc15dad0bf42538d09390c93e643f787316710de62aa2357b5de)(react@18.3.1)':
     dependencies:
       react: 18.3.1
 
@@ -2050,11 +2033,6 @@ snapshots:
       schemastery: 3.18.0
 
   '@linxin666/dsh-client-ui-web-ui-settings@0.2.4(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
-      schemastery: 3.18.0
-
-  '@linxin666/dsh-desktop-launcher@0.2.4(react@18.3.1)':
     dependencies:
       react: 18.3.1
       schemastery: 3.18.0
@@ -2105,13 +2083,13 @@ snapshots:
       '@linxin666/dsh-chat-recovery': 0.2.4(react@18.3.1)
       '@linxin666/dsh-client-ui-aionui-panel': 0.2.4(react@18.3.1)
       '@linxin666/dsh-client-ui-community-plugins': 0.2.4(react@18.3.1)
-      '@linxin666/dsh-client-ui-git-graph': 0.2.4(react@18.3.1)
+      '@linxin666/dsh-client-ui-git-graph': 0.2.4(patch_hash=d06169c00189fc15dad0bf42538d09390c93e643f787316710de62aa2357b5de)(react@18.3.1)
       '@linxin666/dsh-client-ui-plugin-manager': 0.2.4(react@18.3.1)
       '@linxin666/dsh-client-ui-skill-explorer': 0.2.4(react@18.3.1)
       '@linxin666/dsh-client-ui-skin-center': 0.2.4(react@18.3.1)
       '@linxin666/dsh-client-ui-task-board': 0.2.4(react@18.3.1)
       '@linxin666/dsh-client-ui-web-ui-settings': 0.2.4(react@18.3.1)
-      '@linxin666/dsh-desktop-launcher': 0.2.4(react@18.3.1)
+      '@linxin666/dsh-desktop-launcher': link:../../plugin-src/dsh-desktop-launcher
       '@linxin666/dsh-liangshen': 0.2.4
       '@linxin666/dsh-pet': 0.2.4(react@18.3.1)
       '@linxin666/dsh-remote-web-ui': 0.2.4(react@18.3.1)
@@ -2787,13 +2765,7 @@ snapshots:
 
   dsh-history-tree@1.0.3: {}
 
-  dsh-reef@1.5.2:
-    dependencies:
-      playwright-core: 1.62.1
-
   dsh-skill-fuzzy@https://codeload.github.com/ch1bug/dsh-skill-fuzzy/tar.gz/1ece049595d140855d63e18d7e21ac237b127d7c: {}
-
-  dsh-wsl-workspace@0.2.3: {}
 
   dshmarket@1.13.1:
     dependencies:
@@ -3299,8 +3271,6 @@ snapshots:
       jpeg-exif: 1.1.4
       linebreak: 1.1.0
       png-js: 1.1.0
-
-  playwright-core@1.62.1: {}
 
   png-js@1.1.0:
     dependencies:

@@ -4,6 +4,8 @@ packages:
 nodeLinker: hoisted
 autoInstallPeers: false
 storeDir: ../../.pnpm-store
+overrides:
+  '@linxin666/dsh-desktop-launcher': link:../../plugin-src/dsh-desktop-launcher
 minimumReleaseAgeExclude:
   - '@liustack/modlens@3.17.0 || 3.22.0'
   - dsh-reef@1.5.2
@@ -36,3 +38,5 @@ allowBuilds:
   cpu-features: false
   node-pty: true
   ssh2: false
+patchedDependencies:
+  '@linxin666/dsh-client-ui-git-graph@0.2.4': patches/@linxin666__dsh-client-ui-git-graph@0.2.4.patch

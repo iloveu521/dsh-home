@@ -1,0 +1,241 @@
+diff --git a/lib/client.js b/lib/client.js
+index 0e4d73b4b24a962734e9a908ef0a08dbe1bf0940..1166d63d21e0df8caa9d87ce14864a2735026b56 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -829,17 +829,28 @@ window.__ModuleLoader__.load({
+ 			return stockLightTheme;
+ 		}
+ 		/**
+-		* The right edge of the rightmost painted descendant of `root`, excluding
+-		* `root` itself. The hero row's direct children can be display:contents
+-		* slot outlets, so the visible chip boundary must be found by walking.
++		* The right edge of the rightmost painted chip of `root`, excluding `root`
++		* itself. The hero row's direct children can be display:contents slot
++		* outlets, so the visible chip boundary must be found by walking. Only
++		* interactive chips (button / role=button / role=switch) are measured by
++		* default: the official seats' outlet wrappers and label spans can be laid
++		* out wider than what they actually paint (invisible measurement padding),
++		* which used to push this chip past the agent-preset seat instead of
++		* hugging it with the official row gap. Falls back to the full walk for
++		* shells that render non-button chips.
+ 		*/
+ 		function paintedRight(root) {
+ 			let right = null;
++			const consider = (node) => {
++				const rect = node.getBoundingClientRect();
++				if (rect.width > 0 && rect.height > 0) right = right === null ? rect.right : Math.max(right, rect.right);
++			};
++			root.querySelectorAll('button, [role="button"], [role="switch"]').forEach((el) => {
++				if (el !== root) consider(el);
++			});
++			if (right !== null) return right;
+ 			const visit = (node) => {
+-				if (node !== root) {
+-					const rect = node.getBoundingClientRect();
+-					if (rect.width > 0 && rect.height > 0) right = right === null ? rect.right : Math.max(right, rect.right);
+-				}
++				if (node !== root) consider(node);
+ 				for (const child of Array.from(node.children)) visit(child);
+ 			};
+ 			visit(root);
+@@ -904,6 +915,39 @@ window.__ModuleLoader__.load({
+ 				const stack = outlet?.parentElement ?? null;
+ 				const heroRow = outlet?.previousElementSibling ?? null;
+ 				if (anchor === null || outlet === null || stack === null || heroRow === null) return;
++				const rowDisplay = typeof getComputedStyle === "function" ? getComputedStyle(heroRow).display : "";
++				if (rowDisplay === "flex" || rowDisplay === "inline-flex") {
++					const seat = () => {
++						if (!anchor.isConnected) return;
++						const target = outlet.previousElementSibling;
++						if (target === null || anchor.parentElement === target) return;
++						target.appendChild(anchor);
++						anchor.style.position = "relative";
++						anchor.style.zIndex = "10";
++						anchor.style.left = "";
++						anchor.style.top = "";
++						anchor.style.paddingLeft = "0";
++						let extraGap = 0;
++						if (typeof getComputedStyle === "function") {
++							const rowGap = Number.parseFloat(getComputedStyle(target).columnGap) || 0;
++							const chips = Array.from(target.querySelectorAll('button, [role="button"], [role="switch"]')).filter((el) => el !== anchor && !anchor.contains(el) && el.getBoundingClientRect().width > 0);
++							if (chips.length >= 2) {
++								const firstRect = chips[0].getBoundingClientRect();
++								const secondRect = chips[1].getBoundingClientRect();
++								extraGap = Math.max(0, secondRect.left - firstRect.right - rowGap);
++							}
++						}
++						anchor.style.marginLeft = `${extraGap}px`;
++					};
++					seat();
++					const reseat = typeof MutationObserver === "undefined" ? void 0 : new MutationObserver(seat);
++					reseat?.observe(stack, { childList: true, subtree: true });
++					return () => {
++						reseat?.disconnect();
++						anchor.style.position = "";
++						anchor.style.zIndex = "";
++					};
++				}
+ 				const measure = () => {
+ 					const stackRect = stack.getBoundingClientRect();
+ 					const rowRect = heroRow.getBoundingClientRect();
+diff --git a/lib/types/client/chips/BranchChip.js b/lib/types/client/chips/BranchChip.js
+index a7db6701af75a93c7564e53924e1d79da7a0384d..4a12ff20331e3e2f3fb3ce810e69cbc50451f662 100644
+--- a/lib/types/client/chips/BranchChip.js
++++ b/lib/types/client/chips/BranchChip.js
+@@ -151,6 +151,46 @@ export function BranchChip(props) {
+         const heroRow = outlet?.previousElementSibling ?? null;
+         if (anchor === null || outlet === null || stack === null || heroRow === null)
+             return;
++        // Native lift: join the official hero row as a real flex child so the
++        // browser guarantees vertical centering (align-items:center) and the
++        // official inter-chip gap — immune to sub-pixel/DPI rounding that made
++        // the measured absolute placement sit visibly higher/lower than the
++        // workspace / agent-preset chips on some machines.
++        const rowDisplay = typeof getComputedStyle === 'function' ? getComputedStyle(heroRow).display : '';
++        if (rowDisplay === 'flex' || rowDisplay === 'inline-flex') {
++            const seat = () => {
++                if (!anchor.isConnected)
++                    return;
++                const target = outlet.previousElementSibling;
++                if (target === null || anchor.parentElement === target)
++                    return;
++                target.appendChild(anchor);
++                anchor.style.position = 'relative';
++                anchor.style.zIndex = '10';
++                anchor.style.left = '';
++                anchor.style.top = '';
++                anchor.style.paddingLeft = '0';
++                let extraGap = 0;
++                if (typeof getComputedStyle === 'function') {
++                    const rowGap = Number.parseFloat(getComputedStyle(target).columnGap) || 0;
++                    const chips = Array.from(target.querySelectorAll('button, [role="button"], [role="switch"]')).filter((el) => el !== anchor && !anchor.contains(el) && el.getBoundingClientRect().width > 0);
++                    if (chips.length >= 2) {
++                        const firstRect = chips[0].getBoundingClientRect();
++                        const secondRect = chips[1].getBoundingClientRect();
++                        extraGap = Math.max(0, secondRect.left - firstRect.right - rowGap);
++                    }
++                }
++                anchor.style.marginLeft = `${extraGap}px`;
++            };
++            seat();
++            const reseat = typeof MutationObserver === 'undefined' ? undefined : new MutationObserver(seat);
++            reseat?.observe(stack, { childList: true, subtree: true });
++            return () => {
++                reseat?.disconnect();
++                anchor.style.position = '';
++                anchor.style.zIndex = '';
++            };
++        }
+         const measure = () => {
+             const stackRect = stack.getBoundingClientRect();
+             const rowRect = heroRow.getBoundingClientRect();
+diff --git a/src/client/chips/BranchChip.tsx b/src/client/chips/BranchChip.tsx
+index 67db818a25d1cb1f972f607bf9676180af2a193c..cf41497b979879f829e64e214ac0d19a1f3bb5e5 100644
+--- a/src/client/chips/BranchChip.tsx
++++ b/src/client/chips/BranchChip.tsx
+@@ -65,19 +65,30 @@ function useStockLightTheme(): boolean {
+ }
+ 
+ /**
+- * The right edge of the rightmost painted descendant of `root`, excluding
+- * `root` itself. The hero row's direct children can be display:contents
+- * slot outlets, so the visible chip boundary must be found by walking.
++ * The right edge of the rightmost painted chip of `root`, excluding `root`
++ * itself. The hero row's direct children can be display:contents slot
++ * outlets, so the visible chip boundary must be found by walking. Only
++ * interactive chips (button / role=button / role=switch) are measured by
++ * default: the official seats' outlet wrappers and label spans can be laid
++ * out wider than what they actually paint (invisible measurement padding),
++ * which used to push this chip past the agent-preset seat instead of hugging
++ * it with the official row gap. Falls back to the full walk for shells that
++ * render non-button chips.
+  */
+ function paintedRight(root: Element): number | null {
+   let right: number | null = null
+-  const visit = (node: Element): void => {
+-    if (node !== root) {
+-      const rect = node.getBoundingClientRect()
+-      if (rect.width > 0 && rect.height > 0) {
+-        right = right === null ? rect.right : Math.max(right, rect.right)
+-      }
++  const consider = (node: Element): void => {
++    const rect = node.getBoundingClientRect()
++    if (rect.width > 0 && rect.height > 0) {
++      right = right === null ? rect.right : Math.max(right, rect.right)
+     }
++  }
++  root.querySelectorAll('button, [role="button"], [role="switch"]').forEach((el) => {
++    if (el !== root) consider(el)
++  })
++  if (right !== null) return right
++  const visit = (node: Element): void => {
++    if (node !== root) consider(node)
+     for (const child of Array.from(node.children)) visit(child)
+   }
+   visit(root)
+@@ -151,11 +162,15 @@ export function BranchChip(props: BranchChipProps) {
+ 
+   // Hero-phase placement: the rc.6 shell renders the dock as its own row
+   // between the official hero chip row and the composer card. The chip is
+-  // instead lifted into that hero row, immediately after its rightmost
+-  // painted chip (the agent-preset seat — "梁神模式"), by anchoring to the
+-  // composer stack and matching the official row gap. The slot outlet uses
+-  // display:contents, so the anchor's outlet parent is the boundary between
+-  // the hero row (previous element sibling) and the composer card below.
++  // instead lifted into that hero row. Preferred path: append it to the row
++  // as a real flex child, so `align-items: center` and the official row gap
++  // guarantee pixel-identical alignment with the workspace / agent-preset
++  // chips on every machine (the previous JS-measured absolute placement could
++  // sit visibly higher/lower under sub-pixel/DPI rounding). The anchor keeps
++  // `position: relative` + `z-index` so the popover still stacks above the
++  // composer card. If the shell swaps the row node when composer phases
++  // change, a MutationObserver re-seats the chip into the live row.
++  // Fallback for non-flex rows: the legacy measured absolute placement.
+   useLayoutEffect(() => {
+     if (!heroSeat) return
+     const anchor = anchorRef.current
+@@ -163,6 +178,44 @@ export function BranchChip(props: BranchChipProps) {
+     const stack = outlet?.parentElement ?? null
+     const heroRow = outlet?.previousElementSibling ?? null
+     if (anchor === null || outlet === null || stack === null || heroRow === null) return
++    const rowDisplay = typeof getComputedStyle === 'function' ? getComputedStyle(heroRow).display : ''
++    if (rowDisplay === 'flex' || rowDisplay === 'inline-flex') {
++      const seat = (): void => {
++        if (!anchor.isConnected) return
++        const target = outlet.previousElementSibling
++        if (target === null || anchor.parentElement === target) return
++        target.appendChild(anchor)
++        anchor.style.position = 'relative'
++        anchor.style.zIndex = '10'
++        anchor.style.left = ''
++        anchor.style.top = ''
++        anchor.style.paddingLeft = '0'
++        // Replicate the official pair's painted rhythm: skins/shells may give
++        // the seats extra spacing beyond the row gap; copy it so all three
++        // chips sit with identical visual gaps.
++        let extraGap = 0
++        if (typeof getComputedStyle === 'function') {
++          const rowGap = Number.parseFloat(getComputedStyle(target).columnGap) || 0
++          const chips = Array.from(
++            target.querySelectorAll('button, [role="button"], [role="switch"]'),
++          ).filter((el) => el !== anchor && !anchor.contains(el) && el.getBoundingClientRect().width > 0)
++          if (chips.length >= 2) {
++            const firstRect = chips[0].getBoundingClientRect()
++            const secondRect = chips[1].getBoundingClientRect()
++            extraGap = Math.max(0, secondRect.left - firstRect.right - rowGap)
++          }
++        }
++        anchor.style.marginLeft = `${extraGap}px`
++      }
++      seat()
++      const reseat = typeof MutationObserver === 'undefined' ? undefined : new MutationObserver(seat)
++      reseat?.observe(stack, { childList: true, subtree: true })
++      return () => {
++        reseat?.disconnect()
++        anchor.style.position = ''
++        anchor.style.zIndex = ''
++      }
++    }
+     const measure = (): void => {
+       const stackRect = stack.getBoundingClientRect()
+       const rowRect = heroRow.getBoundingClientRect()
