@@ -1,0 +1,26 @@
+{
+  "name": "dsh-status-card",
+  "version": "0.1.0",
+  "description": "DSH WebUI /status 命令：运行后在输入框上方显示一张实时卡片，展示上下文窗口占用、累计输入/输出 Token、缓存命中与上下文组成。",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  }
+}

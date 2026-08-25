@@ -27,3 +27,6 @@
       config:
         reviewEnabled: true
         reviewInterval: 10
+- insert:
+    - id: dsh-status-card
+      name: dsh-status-card
