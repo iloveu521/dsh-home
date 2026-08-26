@@ -28,6 +28,11 @@ fi
 pnpm --dir "$profile_dir" --store-dir "$store_dir" install --frozen-lockfile
 pnpm --dir "$repo_root/plugin-src/dsh-workdiff" --store-dir "$store_dir" install --frozen-lockfile
 pnpm --dir "$repo_root/plugin-src/dsh-client-ui-skin-center" --store-dir "$store_dir" install --frozen-lockfile --ignore-scripts
+# Local forks shipping prebuilt lib/ — no build scripts, deps only. The WSL
+# fork's composition row self-disables off Windows, but keeping the package
+# installed here costs nothing and keeps both checkouts identical.
+pnpm --dir "$repo_root/plugin-src/dsh-reef" --store-dir "$store_dir" install --frozen-lockfile --ignore-scripts
+pnpm --dir "$repo_root/plugin-src/dsh-wsl-workspace" --store-dir "$store_dir" install --frozen-lockfile --ignore-scripts
 
 printf 'DSH_HOME=%s\n' "$repo_root"
 echo 'Bootstrap complete. Run: source ~/.profile'

@@ -35,7 +35,10 @@ if ($LASTEXITCODE -ne 0) {
 
 $localPlugins = @(
   @{ Path = 'plugin-src\dsh-workdiff'; IgnoreScripts = $false },
-  @{ Path = 'plugin-src\dsh-client-ui-skin-center'; IgnoreScripts = $true }
+  @{ Path = 'plugin-src\dsh-client-ui-skin-center'; IgnoreScripts = $true },
+  # Local forks shipping prebuilt lib/ — no build scripts, deps only.
+  @{ Path = 'plugin-src\dsh-reef'; IgnoreScripts = $true },
+  @{ Path = 'plugin-src\dsh-wsl-workspace'; IgnoreScripts = $true }
 )
 foreach ($plugin in $localPlugins) {
   $pluginDir = Join-Path $repoRoot $plugin.Path
