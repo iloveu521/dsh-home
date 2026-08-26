@@ -1,0 +1,43 @@
+{
+  "name": "dsh-friendly-steps",
+  "version": "0.2.1",
+  "description": "过程精简：把 DSH Web GUI 里的 Think / 工具调用等技术过程行折叠成友好摘要，面向文字工作者的非技术呈现。Collapses technical process rows in the DeepSeek Harness Web GUI into a friendly summary pill.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ],
+      "platform": "web"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "web-ui"
+  ],
+  "author": "dongwenxiu83-web",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dongwenxiu83-web/dsh-friendly-steps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dongwenxiu83-web/dsh-friendly-steps/issues"
+  },
+  "homepage": "https://github.com/dongwenxiu83-web/dsh-friendly-steps#readme",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  }
+}

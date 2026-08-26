@@ -1,0 +1,16 @@
+{
+  "name": "dsh-think-slice",
+  "version": "0.1.0",
+  "description": "Guaranteed auto-retry for provider failures (429/423/provider error/server/transport/empty) plus interrupted-reasoning capture & seamless resume, with structured JSONL logging and cross-restart slice persistence.",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "license": "MIT"
+}

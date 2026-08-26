@@ -1,0 +1,53 @@
+{
+  "name": "dsh-reef",
+  "description": "本地 fork（基于上游 1.5.2）：悬浮按钮上移避让 dsh-desktop-launcher 的关机浮钮（fab bottom 16→80px、panel bottom 64→128px）。上游发布新版本时需手工合并。",
+  "version": "1.5.2",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.mjs",
+  "types": "./lib/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.mts",
+      "default": "./lib/index.mjs"
+    },
+    "./browser": {
+      "types": "./lib/browser.d.mts",
+      "default": "./lib/browser.mjs"
+    },
+    "./mcp": {
+      "types": "./lib/mcp.d.mts",
+      "default": "./lib/mcp.mjs"
+    },
+    "./github": {
+      "types": "./lib/github.d.mts",
+      "default": "./lib/github.mjs"
+    },
+    "./gitlab": {
+      "types": "./lib/gitlab.d.mts",
+      "default": "./lib/gitlab.mjs"
+    },
+    "./console": {
+      "types": "./lib/console.d.mts",
+      "default": "./lib/console.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT",
+  "dependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}

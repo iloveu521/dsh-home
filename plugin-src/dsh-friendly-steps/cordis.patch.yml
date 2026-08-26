@@ -1,0 +1,5 @@
+# dsh-friendly-steps bundle patch: insert the presentation-only process
+# collapse row. The plugin ships no host behavior; lib/client.js does the work.
+- insert:
+    - id: friendly-steps
+      name: 'dsh-friendly-steps'
