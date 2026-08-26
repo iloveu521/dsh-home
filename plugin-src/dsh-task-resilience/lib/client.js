@@ -145,8 +145,55 @@ window.__ModuleLoader__.load({ id: 'dsh-task-resilience', factory(require) {
     return EMPTY
   }
 
+  // --- merged friendly-steps badge ------------------------------------------
+  // dsh-friendly-steps publishes its stats store on window after boot; the
+  // status card adopts the "已完成 N 步" summary so it renders inside this
+  // card instead of a separate floating pill. A ready signal flips only once
+  // so the card can mount the badge regardless of plugin load order.
+  const EMPTY_FS_STATS = Object.freeze({ steps: 0, failed: 0, running: false })
+  let fsReady = false
+  const fsListeners = new Set()
+  function fsSubscribe(listener) {
+    fsListeners.add(listener)
+    return () => fsListeners.delete(listener)
+  }
+  function fsReadySnapshot() {
+    return fsReady
+  }
+  function markFsReady() {
+    if (fsReady) return
+    fsReady = true
+    for (const listener of [...fsListeners]) {
+      try { listener() } catch (error) { console.error('[task-resilience] fs-ready listener failed:', error) }
+    }
+  }
+
+  function StepsBadge() {
+    const fs = typeof window !== 'undefined' ? window.dshFriendlySteps : undefined
+    const stats = useSyncExternalStore(
+      fs?.subscribe ? (listener) => fs.subscribe(listener) : () => () => {},
+      fs?.getStats ? () => fs.getStats() : () => EMPTY_FS_STATS,
+    )
+    if (!fs) return null
+    if (fs.getMode && fs.getMode() !== 'minimal') return null
+    if (stats.steps === 0 && !stats.running) return null
+    const open = document.body?.getAttribute('data-dsh-fs-open') === '1'
+    const label = stats.running
+      ? `⏳ 正在处理…（已进行 ${stats.steps} 步）`
+      : `✓ 已完成 ${stats.steps} 步`
+    return h('button', {
+      type: 'button', className: 'dtr-steps',
+      title: open ? '收起过程' : '展开查看过程细节',
+      onClick: () => { if (fs.toggle) fs.toggle() },
+    },
+    label,
+    stats.failed > 0 ? h('span', { className: 'dtr-steps-fail' }, ` · ${stats.failed} 步未成功`) : null,
+    open ? ' ▾' : ' ▸')
+  }
+
   function StatusBar() {
     const current = useSyncExternalStore(subscribe, () => state)
+    const ready = useSyncExternalStore(fsSubscribe, fsReadySnapshot)
     if (current.kind === 'idle' || statusKey(current) === dismissedStatusKey) return null
     const remaining = current.deadline > Date.now()
       ? `，约 ${Math.max(1, Math.ceil((current.deadline - Date.now()) / 1000))} 秒后重试`
@@ -162,6 +209,7 @@ window.__ModuleLoader__.load({ id: 'dsh-task-resilience', factory(require) {
       h('strong', null, current.title + remaining),
       current.detail ? h('span', null, current.detail) : null,
       current.code ? h('code', null, current.code) : null),
+    ready ? h(StepsBadge) : null,
     h('button', {
       type: 'button', className: 'dtr-close', title: '隐藏此状态', 'aria-label': '隐藏此状态',
       onClick: () => {
@@ -176,19 +224,25 @@ window.__ModuleLoader__.load({ id: 'dsh-task-resilience', factory(require) {
   }
 
   const CSS = [
-    '.dtr-bar{position:relative;display:flex;align-items:flex-start;gap:10px;width:100%;box-sizing:border-box;margin:0 auto 8px;padding:9px 12px;border:1px solid var(--dsw-alias-border-l2,#3a3f4b);border-radius:12px;background:color-mix(in srgb,var(--dsw-specific-input-major,#17202f) 88%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(10px);color:var(--dsw-alias-label-primary,#e8eaed);font-family:inherit}',
+    // Sub-card form: narrower than the composer card below, centered.
+    '.dtr-bar{position:relative;display:flex;align-items:flex-start;gap:10px;width:100%;max-width:520px;box-sizing:border-box;margin:0 auto 8px;padding:9px 12px;border:1px solid var(--dsw-alias-border-l2,#3a3f4b);border-radius:12px;background:color-mix(in srgb,var(--dsw-specific-input-major,#17202f) 88%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(10px);color:var(--dsw-alias-label-primary,#e8eaed);font-family:inherit}',
     '.dtr-dot{flex:none;width:9px;height:9px;margin-top:5px;border-radius:50%;background:#79b8ff;box-shadow:0 0 0 4px rgba(121,184,255,.14)}',
     '.dtr-copy{flex:1;min-width:0;display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:baseline}',
     '.dtr-copy strong{font-size:13px;line-height:1.45}',
     '.dtr-copy span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary,#aab2c0);font-size:12px}',
     '.dtr-copy code{padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;color:inherit}',
+    // Steps badge merged from dsh-friendly-steps: the "已完成 N 步" summary
+    // now lives inside the status card instead of a separate floating pill.
+    '.dtr-steps{flex:none;align-self:center;border:1px solid var(--dsw-alias-border-l2,#3a3f4b);border-radius:999px;background:rgba(255,255,255,.06);padding:2px 10px;font-size:11px;line-height:1.5;color:var(--dsw-alias-label-secondary,#aab2c0);cursor:pointer;user-select:none;white-space:nowrap}',
+    '.dtr-steps:hover{background:rgba(255,255,255,.12);color:var(--dsw-alias-label-primary,#e8eaed)}',
+    '.dtr-steps .dtr-steps-fail{color:var(--dsw-alias-text-error,#f85149)}',
     '.dtr-close{flex:none;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#aab2c0);cursor:pointer;font-size:18px;line-height:18px;padding:0 2px}',
     '.dtr-retrying{border-color:rgba(230,162,60,.55)}.dtr-retrying .dtr-dot{background:#e6a23c;box-shadow:0 0 0 4px rgba(230,162,60,.14);animation:dtr-pulse 1.3s ease-in-out infinite}',
     '.dtr-stopped{border-color:rgba(248,81,73,.65)}.dtr-stopped .dtr-dot{background:#f85149;box-shadow:0 0 0 4px rgba(248,81,73,.15)}',
     '.dtr-host-reconnecting{border-color:rgba(230,162,60,.55)}.dtr-host-reconnecting .dtr-dot{background:#e6a23c;animation:dtr-pulse 1.3s ease-in-out infinite}',
     '.dtr-recovered{border-color:rgba(46,160,67,.55)}.dtr-recovered .dtr-dot{background:#3fb950;box-shadow:0 0 0 4px rgba(63,185,80,.14)}',
     '@keyframes dtr-pulse{50%{opacity:.4;transform:scale(.75)}}',
-    '@media(max-width:720px){.dtr-copy{grid-template-columns:1fr auto}.dtr-copy span{grid-column:1/-1}}',
+    '@media(max-width:720px){.dtr-bar{max-width:100%}.dtr-copy{grid-template-columns:1fr auto}.dtr-copy span{grid-column:1/-1}}',
     '@media(prefers-reduced-motion:reduce){.dtr-dot{animation:none!important}}',
   ].join('\n')
 
@@ -305,11 +359,19 @@ window.__ModuleLoader__.load({ id: 'dsh-task-resilience', factory(require) {
     window.dshTaskResilience = { status: () => state, refresh: refreshSession }
     console.info('[task-resilience] recovery visibility enabled; provider retry execution remains native')
 
+    // Adopt the friendly-steps stats store for the merged badge. The ready
+    // event covers the "friendly-steps loads after us" order; the direct check
+    // covers "already loaded". Both are idempotent through markFsReady.
+    const onFsReady = () => markFsReady()
+    window.addEventListener('dsh-friendly-steps:ready', onFsReady)
+    if (window.dshFriendlySteps) markFsReady()
+
     return () => {
       if (sessionDispose) sessionDispose()
       for (const dispose of disposers) {
         try { dispose() } catch { /* ignore */ }
       }
+      window.removeEventListener('dsh-friendly-steps:ready', onFsReady)
       if (recoveredTimer) clearTimeout(recoveredTimer)
       clearInterval(clockTimer)
       resumeErrorObserver.disconnect()
